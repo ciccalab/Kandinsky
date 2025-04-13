@@ -32,7 +32,7 @@ devtools::install_github('ciccalab/Kandinsky')
 
 Alternatively, install Kandinsky by downloading the repository on your local computer using `git`:
 
-```r
+```
 cd path/to/local/folder
 git clone https://github.com/ciccalab/Kandinsky.git
 #Alternative code for SSH connection: git clone git@github.com:ciccalab/Kandinsky.git
@@ -40,7 +40,7 @@ git clone https://github.com/ciccalab/Kandinsky.git
 
 After downloading the repository, change directory to `Kandinsky/` and use `devtools` to install the package:
 
-```r
+```
 cd Kandinsky/
 R
 devtools::install()
