@@ -15,6 +15,7 @@ KanPlot(
   alpha = NULL,
   show_border = F,
   border.size = NULL,
+  border.col = "black",
   max.cap = 0.99,
   bg_img = F,
   bg_type = c("img", "mask"),
@@ -46,6 +47,8 @@ KanPlot(
 \item{show_border}{boolean, whether plotting (TRUE) or not (FALSE) polygon borders.}
 
 \item{border.size}{numeric, polygon border thickness passed to `lwd` parameter of geom_sf() function when `show_border` is set to TRUE. If not specified, default value is set to 0.01}
+
+\item{border.col}{color of polygon borders when `show_border` is set to TRUE.}
 
 \item{max.cap}{numeric value between 0 and 1 specifying the higher percentile cutoff value for continuous variables. Default value is set to 0.99}
 

@@ -11,8 +11,9 @@ ResidualPlot(
   limits = c(-20, 20),
   pval = T,
   perm = 1000,
-  padj.thresh = 0.05,
-  alternative = c("two.sided", "less", "greater")
+  padj.thresh = 0.01,
+  alternative = c("two.sided", "less", "greater"),
+  return.df = F
 )
 }
 \arguments{
@@ -24,13 +25,15 @@ ResidualPlot(
 
 \item{limits}{lower and upper residual caps for heatmap colour gradient}
 
-\item{pval}{boolean, whether returning heatmap with cells annotated for significance or not (based on permutation test)}
+\item{pval}{boolean, whether returning heatmap with cells annotated for significance or not (based on normal distribution fitting)}
 
 \item{perm}{numeric, number of var.1 and var.2 reshuffling to estimate enrichment pvalue between var.1 and var.2 via permutation test. Default is set to 1000}
 
-\item{padj.thresh}{numeric, adjusted pvalue threshold to define significant var.1/var.2 chisquare residuals}
+\item{padj.thresh}{numeric, adjusted pvalue threshold to define significant var.1/var.2 chisquare residuals. Default value is set to 0.01}
 
 \item{alternative}{character string specifying the alternative hypothesis, must be one of "two.sided", "greater" (default) or "less".}
+
+\item{return.df}{boolean, whether returning only residual plot (FALSE) or also a dataframe containing permutation-based chi-squared test results}
 }
 \value{
 residual heatmap created with ggplot2
