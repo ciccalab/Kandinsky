@@ -1,7 +1,7 @@
 # Kandinsky
 
 ## Overview <img src="man/figures/logo.png" align="right" height="138" alt="" />
-Kandinsky is a spatial analysis toolkit expanding Seurat functionalities for cell and spot neighbourhood analysis using spatial transcriptomic and proteomic data.
+Kandinsky is a spatial analysis toolkit designed to provide a compendium of methods to study cell and spot spatial neighbourhoods using spatial transcriptomic and proteomic data.
 
 ## Setting up Kandinsky environment
 To speed up package installation in R, user can first create a conda environment starting from the environment.yaml file.
