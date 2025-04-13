@@ -17,6 +17,7 @@ For mamba users:
 mamba env create -f environment.yaml
 ```
 
+
 ## Installation
 After setting up the conda environment, you can activate the environment and start a new R session to install Kandinsky:
 
@@ -26,6 +27,7 @@ R
 ```
 
 ### Download Kandinsky using devtools
+
 Kandinsky can be downloaded from Github and installed using `R` package `devtools`:
 ```r
 install.packages('devtools')
@@ -33,6 +35,7 @@ devtools::install_github('ciccalab/Kandinsky')
 ```
 
 ### Download Kandinsky using git
+
 Alternatively, install Kandinsky by downloading the repository on your local computer using `git`:
 
 ```
