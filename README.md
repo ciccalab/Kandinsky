@@ -43,5 +43,7 @@ After downloading the repository, change directory to `Kandinsky/` and use `devt
 ```
 cd Kandinsky/
 R
+```
+```r
 devtools::install()
 ```
