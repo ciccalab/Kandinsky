@@ -24,5 +24,5 @@ R
 Install development version from GitHub:
 ```r
 install.packages('devtools')
-devtools::install_github('PietroAndrei/Kandinsky')
+devtools::install_github('ciccalab/Kandinsky')
 ```
