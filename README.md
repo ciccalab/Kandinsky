@@ -3,7 +3,7 @@
 ## Overview <img src="man/figures/logo.png" align="right" height="138" alt="" />
 Kandinsky is a spatial analysis toolkit expanding Seurat functionalities for cell and spot neighbourhood analysis using spatial transcriptomic and proteomic data.
 
-## Installation
+## Setting up Kandinsky environment
 To speed up package installation in R, user can first create a conda environment starting from the environment.yaml file.
 This will make available most of Kandinsky dependencies before downloading it.
 
@@ -17,19 +17,22 @@ For mamba users:
 mamba env create -f environment.yaml
 ```
 
-After setting up the conda environment, you can activate the environment and start a new R session to download Kandinsky:
+## Installation
+After setting up the conda environment, you can activate the environment and start a new R session to install Kandinsky:
 
 ```
 conda activate kandinsky
 R
 ```
 
+### Download Kandinsky using devtools
 Kandinsky can be downloaded from Github and installed using `R` package `devtools`:
 ```r
 install.packages('devtools')
 devtools::install_github('ciccalab/Kandinsky')
 ```
 
+### Download Kandinsky using git
 Alternatively, install Kandinsky by downloading the repository on your local computer using `git`:
 
 ```
