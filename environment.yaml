@@ -1,0 +1,44 @@
+name: kandinsky
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - r-base >= 4.3.0
+  - r-devtools >= 2.4.5
+  - r-knitr
+  - r-rmarkdown 
+  - conda-forge::r-seurat >= 5.0.3
+  - conda-forge::r-seuratobject >= 5.0.2
+  - conda-forge::r-arrow >= 13.0.0
+  - r-matrix
+  - r-stringr
+  - r-dplyr
+  - r-tibble
+  - r-purrr
+  - r-tidyterra
+  - conda-forge::r-spatstat.geom
+  - r-rcolorbrewer
+  - r-viridis
+  - r-patchwork
+  - r-ggnewscale
+  - r-ggrepel
+  - r-spdep >= 1.2-8
+  - r-terra >= 1.7.46
+  - r-sf >= 1.0-14
+  - r-sfheaders
+  - r-hdf5r
+  - r-reshape2
+  - r-fnn >= 1.1.4
+  - r-spatialreg >= 1.0-8
+  - conda-forge::r-snowfall
+  - conda-forge::r-rlecuyer
+  - conda-forge::r-r.utils
+  - conda-forge::udunits2
+  - conda-forge::igraph
+  - bioconda::r-leidenbase
+  - bioconda::bioconductor-rhdf5
+  - bioconda::bioconductor-rbioformats
+  - bioconda::bioconductor-matrixgenerics >= 1.14.0
+  - bioconda::r-presto
+  - r-glue
