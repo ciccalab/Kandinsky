@@ -8,8 +8,8 @@ Authors@R: c(
 		person("Matteo", "Cereda", email = "matteo.cereda@iigm.it",role = c("aut"),
 		person("Francesca", "Ciccarelli", email = "francesca.ciccarelli@crick.ac.uk",role = c("aut"))
 		)
-Description: 'Kandinksy' provides a set of functions to easily analyse and interact with imaging and sequencing-based spatial transcriptomic data.
-        The package is designed to expand the set of tools already available in 'Seurat' to work with spatial data, and is currently compatible with data generated with CosMx, Xenium, Visium, and Visium HD.
+Description: 'Kandinsky' is a spatial analysis toolkit designed to provide a compendium of methods to study cell and spot spatial neighbourhoods using spatial transcriptomic and proteomic data. 
+Kandinsky is compatible with most of the commercially available spatial transcriptomics and proteomics technologies, and it can be used with any data type providing cell or spot information (including spatial coordinates) in a tabular format.
 Encoding: UTF-8
 LazyData: true
 Depends: 
