@@ -1,0 +1,72 @@
+Package: Kandinsky
+Type: Package
+Title: Spatial analysis toolkit for imaging- and sequencing-based data
+Version: 0.1.0
+Author: Pietro Andrei <pietro.andrei96@gmail.com>
+Maintainer: Pietro Andrei <pietro.andrei96@gmail.com>
+Description: 'Kandinksy' provides a set of functions to easily analyse and interact with imaging and sequencing-based spatial transcriptomic data.
+        The package is designed to expand the set of tools already available in 'Seurat' to work with spatial data, and is currently compatible with data generated with CosMx, Xenium, Visium, and Visium HD.
+Encoding: UTF-8
+LazyData: true
+Depends: 
+    R (>= 4.3),
+    Seurat (>= 5.0.3),
+    SeuratObject (>= 5.0.2)
+Imports: 
+    arrow (>= 13.0.0),
+    dplyr,
+    ggnewscale,
+    ggplot2 (>= 3.5.1),
+    magrittr,
+    Matrix,
+    mclust,
+    methods,
+    purrr (>= 1.0.2),
+    reshape2,
+    rlang,
+    scales,
+    sf (>= 1.0-14),
+    sfheaders,
+    spatialreg (>= 1.2-9),
+    spdep (>= 1.2-8),
+    stringr (>= 1.5.0),
+    terra (>= 1.7.46),
+    tidyterra (>= 0.6.0),
+    viridis
+Suggests:
+    data.table,
+    rlecuyer,
+    snowfall,
+    parallelly,
+    geojsonsf,
+    GLCMTextures,
+    cooccur,
+    broom,
+    greed,
+    FNN (>= 1.1.4),
+    testthat (>= 3.0.0),
+    RcppEigen,
+    lme4,
+    lmerTest,
+    MatrixGenerics (>= 1.14.0),
+    patchwork,
+    rhdf5,
+    spatstat.geom,
+    spatstat.data (>= 3.1.2),
+    spatstat.explore,
+    RBioFormats,
+    knitr,
+    rmarkdown
+Config/testthat/edition: 3
+RoxygenNote: 7.3.2
+Collate: 
+    '00_Kandinsky_Class_funcs.R'
+    '01_Prepare_seurat_data.R'
+    '02_Neighbour_methods.R'
+    '03_NB_based_cell_comparison.R'
+    '04_Colocalisation.R'
+    '05_Hot_cold_spot_analysis_.R'
+    '06_Utils.R'
+    '07_Visualization.R'
+License: GPL (>= 3)
+VignetteBuilder: knitr
