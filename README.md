@@ -1,6 +1,6 @@
-# Kandinsky <img src="man/figures/logo.png" align="right" height="138" alt="" />
+# Kandinsky
 
-## Overview
+## Overview <img src="man/figures/logo.png" align="right" height="138" alt="" />
 Kandinsky is a spatial analysis toolkit expanding Seurat functionalities for cell and spot neighbourhood analysis using spatial transcriptomic and proteomic data.
 
 ## Installation
