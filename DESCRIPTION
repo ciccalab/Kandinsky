@@ -2,8 +2,12 @@ Package: Kandinsky
 Type: Package
 Title: Spatial analysis toolkit for imaging- and sequencing-based data
 Version: 0.1.0
-Author: Pietro Andrei <pietro.andrei96@gmail.com>
-Maintainer: Pietro Andrei <pietro.andrei96@gmail.com>
+Authors@R: c(
+		person("Pietro", "Andrei", email = "pietro.andrei96@gmail.com",role = c("aut", "cre")),
+		person("Mariachiara", "Grieco", email = "mariachiara@grieco.unimi.it",role = c("aut")),
+		person("Matteo", "Cereda", email = "matteo.cereda@iigm.it",role = c("aut"),
+		person("Francesca", "Ciccarelli", email = "francesca.ciccarelli@crick.ac.uk",role = c("aut"))
+		)
 Description: 'Kandinksy' provides a set of functions to easily analyse and interact with imaging and sequencing-based spatial transcriptomic data.
         The package is designed to expand the set of tools already available in 'Seurat' to work with spatial data, and is currently compatible with data generated with CosMx, Xenium, Visium, and Visium HD.
 Encoding: UTF-8
