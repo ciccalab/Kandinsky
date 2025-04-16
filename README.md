@@ -7,12 +7,12 @@ Kandinsky is a spatial analysis toolkit designed to provide a compendium of meth
 
 
 As an input, Kandinsky uses gene or protein expression values and cell or spot coordinates deriving from any spatial transcriptomic or proteomic platform and implements helper functions to automate their loading and formatting into a Seurat object. 
-Starting from their coordinates, Kandinsky groups cells or spots into neighbourhoods (c/s-NBs) according to their reciprocal spatial relationships inferred with five methods: 
-	- k-nearest neighbours (KNN);
-	- cell/spot centroid distance; 
-	- Delaunay triangulation;
-	- Queen contiguity;
-	- cell membrane distance. 
+Starting from their coordinates, Kandinsky groups cells or spots into neighbourhoods (c/s-NBs) according to their reciprocal spatial relationships inferred with five methods:\
+	- k-nearest neighbours (KNN);\
+	- cell/spot centroid distance;\
+	- Delaunay triangulation;\
+	- Queen contiguity;\
+	- cell membrane distance.\ 
 
 KNN, centroid distance, and Delaunay triangulation are applicable to both spot and cell data, while Queen contiguity is limited to spot data and membrane distances can be measured only from single cell segmentation data. 
 
