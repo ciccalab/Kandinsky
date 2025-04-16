@@ -174,22 +174,37 @@ jc_coloc = function(seurat=NULL,label=NULL,return.mat=F,
     jc_mat[["V2"]] = factor(jc_mat[["V2"]],levels=levels)
     jc_mat[["V1"]] = factor(jc_mat[["V1"]],levels=levels)
   }
-    g=ggplot(jc_mat,aes(y=.data[["V2"]],x=.data[["V1"]],fill=.data[["z-value"]]))+
-      theme_minimal()+geom_tile(color='gray20')+
-      scale_fill_gradient2(low='blue',mid='white',high='red',midpoint=0,
-                           limits=c(quantile(jc_mat[['z-value']],0.9)*-1,
-                                    quantile(jc_mat[['z-value']],0.9)),
-                           oob = scales::squish)+
-      theme(axis.text.x=element_text(angle=45,hjust=1))+
-      theme(panel.grid.major.x = element_blank(),axis.text = element_text(color='black'))+
-      labs(x='Cell Type',y='Cell Type',fill='Coefficient')
+  jc_mat[["oe_log2ratio"]] = log2(jc_mat$Joincount/jc_mat$Expected)
+    #g=ggplot(jc_mat,aes(y=.data[["V2"]],x=.data[["V1"]],fill=.data[["z-value"]]))+
+    #  theme_minimal()+geom_tile(color='gray20')+
+    #  scale_fill_gradient2(low='blue',mid='white',high='red',midpoint=0,
+    #                       limits=c(quantile(jc_mat[['z-value']],0.9)*-1,
+    #                                quantile(jc_mat[['z-value']],0.9)),
+    #                       oob = scales::squish)+
+    #  theme(axis.text.x=element_text(angle=45,hjust=1))+
+    #  theme(panel.grid.major.x = element_blank(),axis.text = element_text(color='black'))+
+    #  labs(x='Cell Type',y='Cell Type',fill='Coefficient')
+  g=ggplot(jc_mat, aes(y = .data[["V2"]], x = .data[["V1"]],fill = .data[["z-value"]],size=abs(.data[["oe_log2ratio"]]))) +
+    theme_minimal() + geom_point(shape=21,color = "black") +
+    scale_size_continuous(range=c(0,9),
+                          breaks=c(seq(round(min(abs(jc_mat$oe_log2ratio))),round(max(abs(jc_mat$oe_log2ratio))),1)),
+                          labels = 2^(c(seq(round(min(abs(jc_mat$oe_log2ratio))),round(max(abs(jc_mat$oe_log2ratio))),1))))+
+    scale_fill_gradient2(low = "blue", mid = "white", high = "red",
+                         midpoint = 0,
+                         limits = c(quantile(jc_mat[["z-value"]],0.9) * -1,
+                                    quantile(jc_mat[["z-value"]], 0.9)),
+                         oob = scales::squish) +
+    theme(axis.text.x = element_text(angle = 45,hjust = 1)) +
+    theme(panel.grid.major.x = element_blank(),
+          axis.text = element_text(color = "black")) +
+    labs(x = '',y = '', fill = "z-value",size='|Obs/Exp| ratio')+
+    theme(axis.title.x  = element_blank(),
+          axis.title.y = element_blank())
   if(return.mat ==T){
     coloc_mat=jc_mat
     colnames(coloc_mat)[colnames(coloc_mat) == 'V1'] = 'Type1'
     colnames(coloc_mat)[colnames(coloc_mat) == 'V2'] = 'Type2'
   }
-  g=g+theme(axis.title.x  = element_blank(),
-            axis.title.y = element_blank())
   if(return.mat==F){
     g
   }else{
@@ -241,4 +256,7 @@ spweights_mat = function(listw){
 
   list(n = n, n1 = n1, n2 = n2, n3 = n3, nn = nn, S0 = S0, S1 = S1, S2 = S2)
 }
+
+
+
 
