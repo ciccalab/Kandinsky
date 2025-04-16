@@ -4,12 +4,7 @@
 \alias{nbCluster}
 \title{Identify single cell/spot clusters on the basis of their neighbourhood compositin}
 \usage{
-nbCluster(
-  seurat = NULL,
-  n_clust = 3:12,
-  seed = 347548,
-  style = c("mclust", "greed")
-)
+nbCluster(seurat = NULL, n_clust = 3:12, seed = 347548)
 }
 \arguments{
 \item{seurat}{a Seurat object containing Kandinsky data (`KanData()`)}
@@ -17,8 +12,6 @@ nbCluster(
 \item{n_clust}{numeric vector indicating the possible niche numbers to be tested to find the optimal number}
 
 \item{seed}{numeric, random seed for reproducibility. Default is set to 347548}
-
-\item{style}{clustering algorithm to be used. Must be one of the following: "mclust", "greed". Default is set to "mclust"}
 }
 \value{
 Seurat object with new `nbClust_` variable column stored in the Seurat meta.data

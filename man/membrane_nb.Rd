@@ -27,6 +27,7 @@ Other nb_funcs:
 \code{\link{knn_nb}()},
 \code{\link{nb_expand}()},
 \code{\link{nb_update}()},
-\code{\link{queen_nb}()}
+\code{\link{queen_nb}()},
+\code{\link{tri_nb}()}
 }
 \concept{nb_funcs}

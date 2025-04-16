@@ -14,9 +14,10 @@ kandinsky_init(
   tx_path = NULL,
   fov_path = NULL,
   poly_path = NULL,
-  nb.method = c("Q", "C", "K", "M"),
+  nb.method = c("Q", "C", "D", "K", "M"),
   k = 20,
   d.max = 40,
+  soi = F,
   hd.snap = 10,
   ids_other = NULL,
   xcoord_other = NULL,
@@ -46,12 +47,15 @@ kandinsky_init(
 Must be one of the following:
 'Q': queen contiguity method,check for contact (not overlap) between any edge or side od two polygons (refers to the queen movement rule in chess). Currently only applicable for Visium/Visium-HD data
 'C': centroid-based method, use maximum centroid distance threshold to identify spot/cell neighbours
+'D': Delaunay triangulation method
 'K': KNN method, define k closest neighbours to each spot/cell
 'M': membrane-based method, check for the occurrence of a physical contact/intersection within a distance threshold between cell boundaries. Not applicable in the case of Visium spots.}
 
 \item{k}{numeric, number of nearest neighbours to be set when `nb.method = K`}
 
 \item{d.max}{numeric, maximum centroid distance threshold to be set when `nb.method = C | M`}
+
+\item{soi}{boolean, whether or not filter Delaunay network to keep sphere of influence (SOI) graph. Default is FALSE}
 
 \item{hd.snap}{numeric, scaling factor used on minimal distance between Visium-HD bins to define neighbour relationships. Only Applied when `nb.method = Q`. Higher `hd.snap` values will give lower distance thresholds.}
 

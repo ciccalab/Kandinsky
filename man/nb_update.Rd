@@ -6,10 +6,11 @@
 \usage{
 nb_update(
   seurat = NULL,
-  nb.method = c("K", "C", "M", "Q"),
+  nb.method = c("K", "C", "D", "M", "Q"),
   snap = NULL,
   d.max = 20,
-  k = 10
+  k = 10,
+  soi = F
 )
 }
 \arguments{
@@ -19,6 +20,7 @@ nb_update(
 Must be one of the following:
 'Q': queen contiguity method,check for contact (not overlap) between any edge or side od two polygons (refers to the queen movement rule in chess). Currently only applicable for Visium/Visium-HD data
 'C': centroid-based method, use maximum centroid distance threshold to identify spot/cell neighbours
+'D': Delaunay triangulation
 'K': KNN method, define k closest neighbours to each spot/cell
 'M': membrane-based method, check for the occurrence of a physical contact/intersection within a distance threshold between cell boundaries. Not applicable in the case of Visium spots.}
 
@@ -27,6 +29,8 @@ Must be one of the following:
 \item{d.max}{numeric, maximum distance accepted between polygon centroids to define neighbour relation}
 
 \item{k}{numeric, number of nearest neighbour to select with knn algorithm}
+
+\item{soi}{boolean, whether or not filter Delaunay network to keep sphere of influence (SOI) graph. Default is FALSE}
 }
 \value{
 seurat object with updated 'nb' neighbours in Kandinsky data
@@ -41,6 +45,7 @@ Other nb_funcs:
 \code{\link{knn_nb}()},
 \code{\link{membrane_nb}()},
 \code{\link{nb_expand}()},
-\code{\link{queen_nb}()}
+\code{\link{queen_nb}()},
+\code{\link{tri_nb}()}
 }
 \concept{nb_funcs}
