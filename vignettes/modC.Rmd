@@ -1,0 +1,815 @@
+---
+title: "Kandinsky cell/spot-neighbour based comparison"
+output:
+  html_document:
+    highlight: tango
+    code_folding: show
+    toc: true
+    toc_float: false
+    self_contained: true
+---
+
+```{=html}
+<style type="text/css">
+pre code {
+max-width: 800px;  
+white-space: pre-wrap;
+}
+
+pre code .comment {
+color: #b0bec5;
+}
+
+#TOC {
+position: fixed;
+left: 20px;
+top: 100px;
+width: 350px;
+background-color: #f8f9fa;
+padding: 10px;
+border-radius: 5px;
+font-size: 14px;
+max-height: 90vh;
+overflow-y: auto;
+}
+
+body {
+margin-left: 300px;
+font-size: 12pt;
+
+}
+</style>
+```
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(warning = F, collapse = TRUE, highlight = TRUE, comment = "#>")
+```
+
+# Introduction
+
+<hr />
+
+The following code replicates the analyses shown in the **Kandinsky** paper aiming to identify:
+
+-   neighbourhood-based (NB) transcriptional changes in **human pancreatic acinar cells** using **CosMx** spatial transcriptomic data.
+-   neighbourhood-based clusters in the **imaging mass cytometry** (IMC) dataset of **pancreatic ductal adenocarcinoma** (PDAC) samples
+
+<br />
+
+# CosMx
+
+<hr />
+
+The **CosMx dataset** analysed in this vignette has been downloaded from the [CosMx SMI Datasets webpage](https://nanostring.com/products/cosmx-spatial-molecular-imager/ffpe-dataset/cosmx-smi-human-pancreas-ffpe-dataset/) available at the NanoString website.
+
+It consists of 18 fields of view (FOVs) from a **human pancreas FFPE tissue**, profiled with the *CosMx Human Whole Transcriptome panel*.
+
+Cell type annotation file obtained via the R package InSituType was also provided by NanoString together with Cosmx data.
+
+```{r setup, echo=F, message=FALSE}
+library(Kandinsky)
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+library(stringr)
+```
+
+<br />
+
+## 1) Loading data
+
+<hr />
+
+In order to work with CosMx data using **Kandinsky**, we first need to set the **path to the folder** containing CosMx raw input data:
+
+```{r set-path, echo = FALSE}
+path = '/Users/cgb01/repo/Kandinsky/data/CosMx_test_dataset_WTX'
+```
+
+```{r, eval = FALSE}
+path = 'Kandinsky/test_data/CosMx_test_dataset_WTX'
+```
+
+```{r}
+list.files(path)
+```
+
+Now we can import and load CosMx data into a `Seurat object` using the Kandinsky `prepare_cosmx_seurat()` function specifying:
+
+-   the `path` to the input folder
+
+-   the `dataset.id` which will be used to name the resulting Seurat object
+
+Additional optional parameters are:
+
+-   `pattern`: to selectively import only files whose filenames contain a specific string, useful when the folder includes input files from multiple datasets
+
+-   `fovs`: to load only the cells located within a specified list of FOVs. To load the full dataset, you can set `fovs = NULL` (default)
+
+```{r load-data}
+# Load CosMX data
+cosmx = prepare_cosmx_seurat(path = path, dataset.id = 'Pancreas', pattern = 'Pancreas')
+```
+
+<br />
+
+## 2) c-NB identification
+
+<hr />
+
+Now that the new `Seurat object` is ready, we use **Kandinsky** to identify **cell neighborhoods** based on cell-to-cell relationships using the `kandinsky_init()` function.\
+Since we are working with CosMx data, we set the parameter `tech = 'cosmx'` to let Kandinsky correctly interpret the CosMx data format.\
+
+For neighborhood identification, we choose the **centroid distance method** (`nb.method = 'C'`) and set the distance threshold to 40um (`d.max = 40`).
+
+```{r prepare-kandinsky-data}
+# Initialize Kandinsky (neighbour method: centroid distance < 40um)
+cosmx = kandinsky_init(cosmx, tech = 'cosmx', nb.method = 'C', d.max = 40)
+```
+
+<br />
+
+## 3) Loading cell type annotation
+
+<hr />
+
+We can load the annotation file and store the cell type information within the `Seurat object` metadata. The dataset includes various cell populations from the pancreatic islets (Alpha, beta, delta, gamma, epsilon cells).
+
+We will create a new annotation field `islet` to label all cells belonging to any of the aforementioned islet cell types.
+
+```{r, echo = FALSE}
+insitu_anno = readRDS("/Users/cgb01/repo/Kandinsky/data/CosMx_test_dataset_WTX/CellType_Accessory_Data/Pancreas_celltype_InSituType.rds")
+```
+
+```{r, eval = FALSE}
+insitu_anno = readRDS("Kandinsky/data/CosMx_test_dataset_WTX/CellType_Accessory_Data/Pancreas_celltype_InSituType.rds")
+```
+
+```{r load-annotation}
+rownames(insitu_anno) = insitu_anno$cell_ID
+insitu_anno = insitu_anno[cosmx$cell,]
+insitu_anno[is.na(insitu_anno$cell_types),]$cell_types = 'Unknown'
+cosmx$cell_types = insitu_anno$cell_types
+cosmx$islet = ifelse(stringr::str_detect(cosmx$cell_types,'Alpha|Beta|Gamma|Delta|Epsilon'), 'Y', 'N')
+
+```
+
+We can now visualize a subset of our dataset (from FOV 51 to 59) using the Kandinsky function `KanPlot()`, with cells coloured according to their annotated cell type:
+
+```{r plot-cell-types,fig.dim=c(13,9)}
+p1 = KanPlot(subset(cosmx,subset = fov <= 59)
+             , feature = 'cell_types'
+             , theme = 'light', bg_img = F, palette_discrete = c12
+             , show_border = T, border.size = 0.1) + 
+  labs(fill = 'Cell Type')
+p1
+```
+
+Before continuing with the downstream analysis, we need to perform gene expression normalization using Seurat function `NormalizeData()`:
+
+```{r normalization}
+# Normalize counts
+cosmx = NormalizeData(cosmx)
+```
+
+<br />
+
+## 4) c-NB based composition
+
+<hr />
+
+Acinar cells proximal to islets are known to up-regulate trypsin and other digestive enzymes [{Egozi, 2020}](https://www.sciencedirect.com/science/article/pii/S2211124720310287) and undergo acinar-to-beta cell reprogramming [{Dahiya, 2024}](https://www.nature.com/articles/s41467-024-47972-4).
+
+To assess this regulatory mechanism, we can use Kandinsky `nnMat()` function to build a **single-cell neighborhood composition matrix**.\
+We specify the `label` argument to indicate the column containing the cell type annotations.
+
+The resulting matrix will be stored within the `nnMat` Kandinsky slot of the `Seurat object`. This matrix will include as columns:
+
+-   cell type labels
+
+-   the number of cells of each cell type contributing to each cell's neighbourhood
+
+-   the total number of neighbours per cell (`tot_nn`)
+
+We can inspect the **composition matrix** using the command `KanData(cosmx,'nnMat')`. This will return the matrix along with the neighbourhood identification method and the name of the cell annotation column.
+
+To retrieve only the composition matrix, we use `KanData(cosmx,'nnMat')$nnMat`.
+
+Alternatively, if we prefer not to store the result inside the `Seurat object`, we can call the function `nnMat()` specifying `return.seurat = F` to return the matrix directly.
+
+```{r centroid-distance-nnMat}
+## CENTROID DISTANCE ##
+# Create neighbour matrix using default neighbour approach previously defined in `kandinsky_init()`
+cosmx = nnMat(cosmx, label = 'cell_types', return.seurat = T)
+knitr::kable(head(KanData(cosmx,'nnMat')$nnMat) )
+```
+
+We can then identify **peri-islet** acinar cells having at least one islet cell in their neighbourhood, and annotate the remaining acinar cells as **non peri-islet**.
+
+This **neihbourhood-based (NB) selection** of acinar cells can be performed using the **Kandinsky** `nn_query()` function, which internally calls `dplyr::filter()`.
+
+The main parameters of `nn_query()` are:
+
+-   `query`: a string that will be parsed and passed to the internal `filter()` function. It must follow the syntax compatible with `tidyverse` functions.
+
+-   `anno.name`: a string specyfing the name of the new column where the output annotation will be stored
+
+```{r centroid-distance-query, message=FALSE}
+# Search for acinar cells with at least 1 neighbours belonging to an islet cell type (alpha/beta/delta/gamma/epsilon)
+cosmx = nn_query(cosmx
+                 , query = '(`Beta cells` >=1 | `Alpha cells` >=1 | `Delta cells` >=1 | `Gamma cells` >=1 | `Epsilon cells` >=1)  & 
+  cell_types %in% c("Acinar.1","Acinar.2")'
+  , anno_name = 'Peri_islet')
+```
+
+The main output of `nn_query` is a new annotation column that will be stored both in the `nnMat` matrix and in the main Seurat metadata.\
+This column reports a boolean annotation ('Y','N') for each cell, indicating whether its neighbourhood composition meets the selection criteria specified in the `query` argument.
+
+For visualization purposes, we will rename 'Y' and 'N' cells into **peri-islet** and **non peri-islet**, respectively.\
+After renaming the cell groups, we can visualize the peri-islet and non peri-islet populations using `KanPlot()`.
+
+```{r visualize-query,fig.dim=c(13,9)}
+cosmx$Acinar_Type = ifelse(cosmx$Peri_islet == 'Y','peri-islet','non peri-islet')
+cosmx$anno_plot = ifelse(cosmx$cell_types %in% c("Acinar.1","Acinar.2"),cosmx$Acinar_Type,
+                         ifelse(cosmx$Peri_islet == 'N' & cosmx$islet=='Y','Islet','Other'))
+
+p2 = KanPlot(subset(cosmx,subset = fov <= 59 & anno_plot %in% c('Islet','peri-islet','non peri-islet'))
+             , feature = 'anno_plot'
+             , theme='light', bg_img = F, palette_discrete = c('gray40','#84C441','#7B1B38')
+             , show_border = T, border.size = 0.1)
+p2
+```
+
+Additionally, by setting the `diffexpr` argument to `TRUE`, we can directly perform **differential expression analysis** between the newly defined 'Y' and 'N' cell populations.
+
+Internally, the Seurat function `FindMarkers()` is used setting 'Y' and 'N' cell groups as `ident.1` and `ident.2`, respectively.\
+Any additional parameter that can be set within `FindMarkers()` can also be directly specified within `nn_query()`.
+
+```{r nnquery-de}
+# Differential expression analysis between peri-islet and non peri-islet acinar cells#
+de_c = nn_query(cosmx,query = '(`Beta cells` >=1 | `Alpha cells` >=1 | `Delta cells` >=1 | `Gamma cells` >=1 | `Epsilon cells` >=1)'
+                , anno_name = 'Peri_islet'
+                , diffexpr = T
+                , label = 'cell_types'
+                , which = c('Acinar.1','Acinar.2')
+                , logfc.threshold = log2(1.1))
+
+
+de_c$gene = rownames(de_c)
+
+# Limit DE results due to contamination by setting a threshold on both the % of expressing cells in both acinar cell populations (pct.1/pct.2)
+de_c = de_c %>% filter(p_val_adj < 0.01,pct.1 >= 0.2, pct.2 > 0.05)
+de_c = de_c %>% arrange(desc(avg_log2FC))
+de_c$gene = factor(de_c$gene, levels = de_c$gene)
+de_c$FC = 2^(de_c$avg_log2FC)
+de_c$sign = ifelse(de_c$FC > 1,'Up','Down')
+```
+
+<br />
+
+## 5) Re-defining c-NB identitification
+
+<hr />
+
+We can then **repeat** the same neighbourhood query and differential expression analysis procedure after changing our definition of cell neighbourhood. For instance, we can now define cell neighbourhood based on physical contact between cells, specified using **the membrane distance** (`nb.method='M'`) and setting a distance threshold of 0um (`d.max=0`).
+
+The change of neighbourhood definition can be made through `nnMat()`, although only the creation of the neighbourhood composition matrix will be affected.
+
+To **permanently** change neighbourhood definition of our `Seurat object` and associated **Kandinsky** data for all downstream analysis, use the `nb_update()` **Kandinsky** function.
+
+```{r membrane-distance-method,fig.dim=c(13,9)}
+## PHYSICAL CONTACT ##
+# Change neighbour approach to physical contact (i.e., membrane distance = 0), then repeat DE analysis
+cosmx = nnMat(cosmx, label = 'cell_types', method = 'M', d.max = 0, return.seurat = T)
+
+
+# Search for acinar cells with at least 1 neighbours belonging to an islet cell type (alpha/beta/delta/gamma/epsilon)
+cosmx = nn_query(cosmx
+                 , query ='(`Beta cells` >=1 | `Alpha cells` >=1 | `Delta cells` >=1 | `Gamma cells` >=1 | `Epsilon cells` >=1)  & 
+                 cell_types %in% c("Acinar.1","Acinar.2")'
+                 , anno_name = 'Peri_islet')
+
+cosmx$Acinar_Type = ifelse(cosmx$Peri_islet == 'Y','peri-islet','non peri-islet')
+cosmx$anno_plot = ifelse(cosmx$cell_types %in% c("Acinar.1","Acinar.2"), cosmx$Acinar_Type,
+                         ifelse(cosmx$Peri_islet == 'N' & cosmx$islet == 'Y','Islet','Other'))
+
+p3 = KanPlot(subset(cosmx, subset = fov <= 59 & anno_plot %in% c('Islet','peri-islet','non peri-islet'))
+             , feature = 'anno_plot'
+             , theme = 'light', bg_img = F, palette_discrete = c('gray40','#84C441','#7B1B38')
+             , show_border = T, border.size = 0.1)
+p3
+
+# Repeat DE
+de_m = nn_query(cosmx,query='(`Beta cells` >=1 | `Alpha cells` >=1 | `Delta cells` >=1 | `Gamma cells` >=1 | `Epsilon cells` >=1)'
+                , anno_name = 'Peri_islet'
+                , diffexpr = T, label = 'cell_types'
+                , which = c('Acinar.1','Acinar.2'), logfc.threshold = log2(1.1))
+
+
+de_m$gene = rownames(de_m)
+de_m = de_m %>% filter(p_val_adj < 0.01, pct.1 >= 0.2, pct.2 >= 0.05)
+de_m = de_m %>% arrange(desc(avg_log2FC))
+de_m$gene = factor(de_m$gene,levels = de_m$gene)
+de_m$FC = 2^(de_m$avg_log2FC)
+de_m$sign = ifelse(de_m$FC > 1,'Up','Down')
+```
+
+Finally, we can again modify the cell neighbourhood definition based on the **K-nearest neighbour (KNN) method** (`nb.method='K'`) and set the number of neighbours to 10 (`k=10`).
+
+```{r knn-method,fig.dim=c(13,9)}
+## K-NEAREST NEIGHBOUR ##
+# Change neighbour approach to KNN (with K=10), then repeat DE analysis
+cosmx = nnMat(cosmx, label = 'cell_types', method='K', k = 10, return.seurat = T)
+
+
+# Search for acinar cells with at least 1 neighbours belonging to an islet cell type (alpha/beta/delta/gamma/epsilon)
+cosmx = nn_query(cosmx
+                 , query = '(`Beta cells` >=1 | `Alpha cells` >=1 | `Delta cells` >=1 | `Gamma cells` >=1 | `Epsilon cells` >=1)  & 
+                 cell_types %in% c("Acinar.1","Acinar.2")'
+                 , anno_name = 'Peri_islet')
+
+
+cosmx$Acinar_Type = ifelse(cosmx$Peri_islet == 'Y','peri-islet','non peri-islet')
+cosmx$anno_plot = ifelse(cosmx$cell_types %in% c("Acinar.1","Acinar.2"),cosmx$Acinar_Type,
+                         ifelse(cosmx$Peri_islet == 'N' & cosmx$islet == 'Y','Islet','Other'))
+
+
+p4 = KanPlot(subset(cosmx,subset = fov <= 59 & anno_plot %in% c('Islet','peri-islet','non peri-islet'))
+             , feature = 'anno_plot'
+             , theme = 'light', bg_img = F, palette_discrete = c('gray40','#84C441','#7B1B38')
+             , show_border = T, border.size = 0.1)
+p4
+
+# Repeat DE
+de_k = nn_query(cosmx
+                , query = '(`Beta cells` >=1 | `Alpha cells` >=1 | `Delta cells` >=1 | `Gamma cells` >=1 | `Epsilon cells` >=1)'
+                , anno_name = 'Peri_islet'
+                , diffexpr = T, label = 'cell_types'
+                , which = c('Acinar.1','Acinar.2'), logfc.threshold = log2(1.1))
+
+
+de_k = de_k %>% filter(p_val_adj < 0.01, pct.1 >= 0.2, pct.2 >= 0.05)
+de_k$gene = rownames(de_k)
+de_k = de_k %>% arrange(desc(avg_log2FC))
+de_k$gene = factor(de_k$gene, levels = de_k$gene)
+de_k$FC = 2^(de_k$avg_log2FC)
+de_k$sign = ifelse(de_k$FC > 1, 'Up', 'Down')
+```
+
+<br />
+
+## 6) Visualizing DE analysis results
+
+<hr />
+
+We can now assess how the differential expression results between **peri-islet** and **non peri-islet** acinar cells have been affected by their associated neighbourhood definition.
+
+We will plot all significant differentially expressed (DE) genes in a separate barplots **for each neighbourhood definition**, with genes ordered according to their associated fold change:
+
+-   FC \> 1 : gene is more expressed in peri-islet acinar cells;
+
+-   FC \< 1 : gene is more expressed in non per-islet acinar cells.
+
+```{r de-barplots,fig.dim=c(13,9)}
+# DE genes barplot
+p5 = ggplot(de_c, aes(y = avg_log2FC, x = gene, fill = sign))+
+  theme_classic()+
+  geom_bar(stat = 'identity')+
+  scale_y_continuous(breaks = c(min(de_c$avg_log2FC), max(de_c$avg_log2FC)),
+                     label = round(2^(c(min(de_c$avg_log2FC), max(de_c$avg_log2FC))),2))+
+  xlab('Gene') + ylab('FC') + labs(fill = 'DE type')+
+  coord_flip()+
+  scale_fill_manual(values = c('Up' = '#7B1B38','Down' = '#84C441'))+
+  theme(axis.text = element_text(color = 'black'))
+
+p6 = ggplot(de_m, aes(y = avg_log2FC, x = gene, fill = sign))+
+  theme_classic() +
+  geom_bar(stat = 'identity')+
+  scale_y_continuous(breaks = c(min(de_m$avg_log2FC), max(de_m$avg_log2FC)),
+                     label = round(2^(c(min(de_m$avg_log2FC), max(de_m$avg_log2FC))), 2))+
+  xlab('Gene') + ylab('FC') + labs(fill = 'DE type')+
+  coord_flip() +
+  scale_fill_manual(values = c('Up' = '#7B1B38', 'Down' = '#84C441'))+
+  theme(axis.text = element_text(color = 'black'))
+
+p7 = ggplot(de_k, aes(y = avg_log2FC, x = gene, fill = sign))+
+  theme_classic() +
+  geom_bar(stat = 'identity')+
+  scale_y_continuous(breaks = c(min(de_k$avg_log2FC), max(de_k$avg_log2FC)),
+                     label = round(2^(c(min(de_k$avg_log2FC), max(de_k$avg_log2FC))), 2)) +
+  xlab('Gene') + ylab('FC') + labs(fill = 'DE type')+
+  coord_flip() +
+  scale_fill_manual(values = c('Up' = '#7B1B38', 'Down' = '#84C441')) +
+  theme(axis.text = element_text(color = 'black'))
+
+
+(p5 + ggtitle('method: centroid distance < 40um'))+
+  (p6 + ggtitle('method: physical contact'))+
+  (p7 + ggtitle('method: KNN (k=10)'))+
+  plot_layout(guides = 'collect', axis_titles = 'collect', ncol = 3)
+
+```
+
+<hr />
+
+# IMC
+
+<hr />
+
+The **imaging mass cytometry** (IMC) dataset of **pancreatic ductal adenocarcinoma** (PDAC) samples was described in [Sussman et al.](https://aacrjournals.org/cancerres/article/84/14/2364/746369/Multiplexed-Imaging-Mass-Cytometry-Analysis).
+
+The IMC PDAC dataset consists of a total of 34 regions of interest (ROIs) collected across 9 PDAC patients. The data can be downloaded from [Zenodo](https://zenodo.org/records/10246315) using the following [link](https://zenodo.org/records/10246315/files/PDAC_IMC_Seurat_FINAL.rds?download=1)
+
+<br />
+
+## 1) Loading data
+
+<hr />
+
+In order to work with IMC PDAC data using Kandinsky, we first need to load the dataset:
+
+```{r, echo = FALSE}
+path = '/Users/cgb01/repo/Kandinsky/data/IMC/PDAC_Sussman_2024/'
+```
+
+```{r, eval = FALSE}
+path = 'Kandinsky/data/IMC/PDAC_Sussman_2024/'
+```
+
+```{r set-path IMC}
+# Specify the folder where IMC PDAC dataset has been downloaded
+data = list.files(path, full.names = FALSE)[1]
+data
+```
+
+This dataset was originally saved as a `Seurat object`. However, if it was not produced with a compatible spatial technology, Kandinsky requires IMC data to be reported in a tabular format.\
+Therefore, we can extract the metadata associated with PDAC cells from the IMC `Seurat object`, including protein measurements and cell centroid coordinates:
+
+```{r load-seurat-data IMC}
+imc = readRDS(file.path(path, data))
+
+# Extract metadata from Seurat object
+imc = imc@meta.data
+
+# Create unique cell identifiers
+imc$cell_ID = paste0(imc$ROIs_Short, '_', rownames(imc))
+imc$ROIs_Short = as.character(imc$ROIs_Short)
+rownames(imc) = imc$cell_ID
+```
+
+Then, we can call the Kandinsky function `prepare_seurat_other()` using the following parameters:
+
+-   `stitch = TRUE`: to merge and align x/y coordinates from multiple regions of interest (ROIs) acquired at different time points in a new unique coordinate system
+
+-   `sample.id`: to specify the ROIs identifiers used as sample IDs
+
+-   `xcoord` and `ycoord`: metadata column to use for retrieving coordinates
+
+This function will create a new `Seurat object` in a format compatible with downstream Kandinsky analysis.
+
+```{r prepare-new_seurat IMC}
+# Define columns corresponding to IMC protein measurements
+markers = colnames(imc)[11:48]
+markers = markers[str_detect(markers,'DNA|In1|Dy163|La139', negate = TRUE)]
+
+# Create new Seurat object (merge coordinates from different ROIs setting stitch=T)
+seurat = prepare_seurat_other(imc
+                              , markers.ids = markers
+                              , stitch = TRUE
+                              , sample.id = 'ROIs_Short'
+                              , xcoord = 'centroid-0'
+                              , ycoord = 'centroid-1')
+```
+
+The new `Seurat object` will contain two new columns `x_global` and `y_global` as part of its metadata, reporting the updated **stitched** x/y cell coordinates from all ROIs.
+
+<br />
+
+## 2) c-NB identification
+
+<hr />
+
+Now that the new `Seurat object` is ready, we can create its associated Kandinsky data using the `kandinsky_init()` function.\
+Since IMC is not part of the list of pre-defined spatial technologies (CosMx, Visium/VisiumHD, Xenium, MERSCOPE), we set the `tech` parameter to `other`.
+
+Additionally, we specify `nb.method = 'K'`, with `k = 20` to create cell neighbourhoods considering the 20 closest neighbours to each cell using the **K-nearest neighbour (KNN) method**.
+
+Cell centroid coordinates are defined using the arguments `xcoord_other` and `ycoord_other`.
+
+```{r create-kandinsky IMC}
+# Create Kandinsky data
+seurat = kandinsky_init(seurat
+                        , tech = 'other'
+                        , k = 20
+                        , nb.method = 'K'
+                        , xcoord_other = 'x_global'
+                        , ycoord_other = 'y_global')
+
+seurat$Cell_Types = as.character(seurat$Cell_Types)
+seurat$Neighborhoods = as.character(seurat$Neighborhoods)
+```
+
+We can now visualize a subset of our samples using the Kandinsky `KanPlot()` function, with cells colored according to their cell type of origin described in [Sussman et al.](https://aacrjournals.org/cancerres/article/84/14/2364/746369/Multiplexed-Imaging-Mass-Cytometry-Analysis):
+
+```{r plot-cell-types IMC, fig.dim=c(13,9)}
+p1 = KanPlot(seurat[,seurat$ROIs_Short %in% unique(seurat$ROIs_Short)[c(1:5)]]
+             , feature = 'Cell_Types'
+             , theme = 'light'
+             , pt.size = 0.45
+             , palette_discrete = c24
+             , pt.shape = 16)
+p1
+```
+
+<br />
+
+## 3) c-NB based composition
+
+<hr />
+
+Having defined cell-specific neighbourhoods with Kandinksy, we can now performed an **unsupervised model-based clustering** of all cells across PDAC samples.
+
+We start by defining the **single cell neighbourhood composition** (in terms of cell types) using the `nnMat()` function.
+
+This will create and store a neighbourhood composition matrix in the Kandinsky slot, which counts the number of cells of each cell type (annotated in the metadata variable specified through the `label` parameter), contributing to each cell neighbourhood.
+
+The `nbCluster()` function will then be used to perform unsupervised clustering of single cell based on the similarity of their neighbourhood composition.\
+This function relies on the clustering method implemented in the R package [mclust](<https://cran.r-project.org/web/packages/mclust/index.html>).
+
+The argument `n_clust` in `nbCluster()` allows specifying one or more cluster numbers to test, and the optimal number of cluster will be selected according to the Bayesian information criterion (BIC).
+
+For our analysis, we can directly set `n_clust = 10` to compare our clustering results with the PDAC niches described in [Sussman et al.](https://aacrjournals.org/cancerres/article/84/14/2364/746369/Multiplexed-Imaging-Mass-Cytometry-Analysis).
+
+The Kandinsky `nbCluster()` function will create a new cluster annotation column in the Seurat metadata, labelled according to the parameter used to initially define Kandinsky neighbourhood (`nb.method_parameter`; in our case, `K_20`)
+
+```{r nb-clustering IMC}
+# Replicate K-nearest neighbour niches (n=10) from the original paper (only clustering algorithm will change)
+seurat = nnMat(seurat, label = 'Cell_Types')
+seurat = nbCluster(seurat
+                   , n_clust = 10)
+
+seurat$nbClust.K_20 = factor(seurat$nbClust.K_20
+                             , levels = c(9, 1, 6, 10, 5, 2, 7, 8, 3, 4)
+                             , labels = c(1:10))
+```
+
+We can now visually compare the **spatial distribution** of the new c-NB clusters with the PDAC niches described in the original study by Sussman et al.:
+
+```{r plot-kandinsky-clusters IMC,fig.dim=c(13,9)}
+# Visualize Kandinsky clusters
+
+pal = c('#ADE2D0','#FF6F00','#84D7E1','#C71000','#FF6348','#008EA0','#FF95A8','#3D3B25','#8A4198','#5A9599')
+pal2 = c('#4BB749','#D42B91','#E2A725','#00807E','#8DC1E9','#ECE949','#44AA99','#999933','#864E9F','#FAC0B2')
+
+p2 = KanPlot(seurat[,seurat$ROIs_Short %in% unique(seurat$ROIs_Short)[c(1:5)]]
+             , feature = 'Neighborhoods'
+             , pt.size = 0.45
+             , palette_discrete = pal2, pt.shape = 16)
+
+p3 = KanPlot(seurat[,seurat$ROIs_Short %in% unique(seurat$ROIs_Short)[c(1:5)]], 
+             , feature = 'nbClust.K_20'
+             , pt.size = 0.45
+             , palette_discrete = pal, pt.shape = 16) + 
+  scale_color_manual(values = setNames(pal, sort(unique(as.numeric(seurat$nbClust.K_20)))))
+
+
+p2 / p3 & theme(legend.position = "none")
+
+```
+
+```{r, message=FALSE}
+library(mclust)
+```
+
+```{r}
+ari = mclust::adjustedRandIndex(as.integer(as.factor(seurat$Neighborhoods)), as.integer(as.factor(seurat$nbClust.K_20)))
+message('Adjusted Rand Index (ARI) between annotations: ', round(ari,2))
+```
+
+The **adjusted Rand index** (ARI) of 0.41 obtained by comparing the two cluster annotations suggests a similar grouping of cells observed in both c-NB clusters and PDAC niches.
+
+<br />
+
+## 4) Compare overlap between Kandinsky c-NB clusters and PDAC niches and cell types
+
+<hr />
+
+Using the `ResidualPlot()` function implemented in Kandinsky, we can visualize the **overlap between different cell annotations**, such as cell types and Kandinsky clusters.
+
+Internally, the function computes a **Chi-squared test** between annotation levels, producing a heatmap colored according to the standardized residuals estimated as part of the Chi-squared test (representing Observed/Expected ratios between each pair of annotation levels).
+
+When `pval` is set to `TRUE`, a permutation test will be performed by randomly reshuffling annotation labels for all cells (number of permutations specified through the `perm` parameter), and producing an FDR for all Chi-squared residuals.
+
+By default, the permutation test will assess the presence of significant enrichment or overlap (*i.e*, residuals \> 0) between annotation levels via a one-tailed test.
+
+However, user can also test the statistical significance of negative residuals associated with depletion, or both positive and negative residuals together via a two-tailed test.
+
+This can be done by changing the `alternative` parameter in `ResidualPlot()` to `greater` (default), `less`, or `two.sided`. The `padj.thresh` parameter is used to select statistically significant residuals.
+
+The `PropPlot()` function creates a stacked barplot showing the proportion of each class of the annotation layer `var.2` within each class of the annotation layer `var.1`.
+
+`PropPlot()` and `ResidualPlot()` can be called simultaneously for the same `var.1` and `var.2` annotations using the wrapper function `EnrichPlots()`.
+
+```{r plot-cluster-enrichment IMC,fig.dim=c(13,9)}
+# Check PDAC niches and cell type enrichment within Kandinsky clusters
+
+# Reorder levels of cell types and PDAC niches for better visualization
+seurat$Cell_Types = factor(seurat$Cell_Types
+                           , levels = rev(c('Alpha Cells', 'Beta Cells', 'Delta Cells'
+                                            , 'CD11b+ Granulocytes', 'Proliferating Tumor/Ductal Cells'
+                                            , 'Stromal/ECM-2', 'Tumor/Ductal Cells', 'Stromal/ECM-1', 'CD68+ Macrophages'	
+                                            , 'Endothelial/Vascular Cells', 'CD68+ CD44+ Macrophages', 'Proliferating Macrophages'
+                                            , 'CD8+ T Cells', 'CD4+ T Cells', 'B Cells', 'Artifact'))
+)
+
+
+ResidualPlot(seurat
+             , var.1 = 'nbClust.K_20'
+             , var.2 = 'Cell_Types'
+             , pval = TRUE
+             , perm = 2000
+             , padj.thresh = 0.01)
+
+
+seurat$Neighborhoods = factor(seurat$Neighborhoods
+                              , levels = c("Endocrine", "Granulocyte Enriched", "Proliferating Tumor", "Stromal Enriched-2"
+                                           , "Tumor/Ductal Enriched", "Tumor/Stromal Mixed", "Vascular", "Stromal Enriched-1"
+                                           , "Macrophage Enriched", "Lymphoid Enriched"))
+
+prop = PropPlot(seurat
+                , var.1 = 'nbClust.K_20'
+                , var.2 = 'Neighborhoods'
+                , cols = setNames(object = pal2, nm = sort(unique(as.character(seurat$Neighborhoods)))))
+
+resid = ResidualPlot(seurat
+                     , var.1 = 'nbClust.K_20'
+                     , var.2 = 'Neighborhoods'
+                     , pval = TRUE
+                     , perm = 2000
+                     , padj.thresh = 0.01) +
+  scale_y_discrete(limits = rev)
+
+prop + resid + plot_layout(guides = 'collect', ncol = 2, axis_titles = 'collect')
+
+```
+
+<br />
+
+## 5) Compare B-cell proportion between Kandinsky clusters
+
+<hr />
+
+Previous enrichment analysis suggests that Kandinsky clusters 9 and 10 are significantly enriched for the **Lymphoid enriched** PDAC Niche, with both clusters showing enrichment in B-cells.
+
+However, the composition of cluster 9 seems to be more strongly influenced by B-cells compared to cluster 10.\
+We can compare B-cell proportions measured in these two clusters using Fisher's exact test:
+
+```{r compare-bcell-proportion IMC}
+# Compare proportion of B cells in Kandinsky cluster 9 and 10 (both enriched for B cells)
+
+imc_meta = seurat@meta.data
+imc_meta$is_Bcell = ifelse(seurat$Cell_Types == 'B Cells','Y','N')
+imc_meta$is_Bcell = factor(imc_meta$is_Bcell, levels = c('Y','N'))
+
+fisher_data = imc_meta[imc_meta$nbClust.K_20 %in% c(9,10),] %>% 
+  mutate(nbClust.K_20 = droplevels(nbClust.K_20))
+
+fisher_pval = fisher.test(fisher_data$nbClust.K_20, fisher_data$is_Bcell)$p.value
+
+if(fisher_pval < 2.2e-16){
+  fisher_pval = 'Fisher pvalue < 2.2e-16'
+}else{
+  fisher_pval = paste0('Fisher pvalue = ',format(fisher_pval, scientific = TRUE, digits = 3) )
+}
+
+cluster910_prop = fisher_data %>% 
+  group_by(nbClust.K_20) %>% 
+  count(is_Bcell) %>% 
+  mutate(prop = n/sum(n), percentage = prop*100) %>% 
+  ungroup() 
+
+tot_cells = cluster910_prop %>% 
+  group_by(nbClust.K_20) %>% 
+  summarise(n = sum(n)) %>% 
+  ungroup()
+
+ggplot(cluster910_prop %>% filter(is_Bcell == 'Y'), aes(x = nbClust.K_20, y = percentage, fill = nbClust.K_20))+
+  theme_classic() + geom_bar(stat = 'identity', color = 'black') + scale_fill_manual(values = c('9' = '#8A4198','10' = '#5A9599'))+
+  scale_y_continuous(breaks = c(0, cluster910_prop[cluster910_prop$is_Bcell=='Y',]$percentage)
+                     , labels = c(0,round(cluster910_prop[cluster910_prop$is_Bcell=='Y',]$percentage,1)))+
+  annotate('text', x = 1.5, y = max(cluster910_prop[cluster910_prop$is_Bcell=='Y',]$percentage+5), label = fisher_pval)+
+  guides(x = guide_axis(cap = "both"),y = guide_axis(cap = "both"))+
+  theme(axis.line = element_line(linewidth = 0.5, lineend = "round"),
+        axis.ticks = element_line(linewidth = 0.5))+
+  scale_x_discrete(labels = paste0(unique(cluster910_prop$nbClust.K_20), paste0('\n(',(tot_cells$n),')')))+
+  labs(x = 'Kandinsky clusters', y = 'B Cells (%)')
+
+```
+
+Indeed, cluster 9 shows a significantly higher percentage of B-cells (\~35%) compared to cluster 10 (\~5%).
+
+We can examine the distribution of **B-cell rich** cluster 9 across samples, and compare it with the distribution of cluster 10:
+
+```{r, cluster-9-10-frequency IMC,fig.dim=c(6,3)}
+imc_meta$patient_id = sapply(imc_meta$cell_ID,function(x){strsplit(x,split = '-')[[1]][[1]]})
+
+freqs_clust910 = imc_meta %>%
+  group_by(ROIs_Short) %>%  count(nbClust.K_20, .drop = FALSE) %>%
+  mutate(prop = n/sum(n)) %>% 
+  ungroup() %>% 
+  filter(nbClust.K_20 %in% c(9,10)) %>%  mutate(percentage = prop*100)
+
+all_rois = freqs_clust910 %>% filter(nbClust.K_20 == 10) %>% arrange(desc(percentage))
+all_rois = all_rois$ROIs_Short
+freqs_clust910$ROIs_Short = factor(freqs_clust910$ROIs_Short, levels = all_rois)
+
+library(scales)
+bar = ggplot(freqs_clust910, aes(x = ROIs_Short, y = percentage, fill = nbClust.K_20)) + 
+  theme_classic() + 
+  geom_bar(width = 0.75, stat = 'identity', position = position_dodge2(preserve = "single", padding = 0), color = 'black')+
+  scale_fill_manual(values = c('9' = '#8A4198','10' = '#5A9599'))+
+  theme(axis.line.x = element_blank()
+        , axis.ticks.x = element_blank()
+        , axis.text.x = element_text(colour = 'black', angle = 90))
+
+bar = bar + scale_y_continuous(breaks = sort(c(1, min(freqs_clust910[["percentage"]]),
+                                               max(freqs_clust910[["percentage"]])))
+                               , labels = sort(c(1, round(c(min(freqs_clust910[["percentage"]]),
+                                                            max(freqs_clust910[["percentage"]])),1)))
+                               , trans = scales::pseudo_log_trans())+
+  guides(x = guide_axis(cap = "both"),y = guide_axis(cap = "both"))+
+  theme(axis.line = element_line(linewidth = 0.5, lineend = "round")
+        , axis.ticks = element_line(linewidth = 0.5))+
+  labs(y = '% Cells (log scale)', x = 'ROI', fill = 'Cluster')+
+  geom_hline(yintercept = 1, linetype = 'dashed')
+
+bar
+```
+
+We can observe that cluster 10 appears across most of the ROIs included in the dataset, while cluster 9 is more sparse and localized only within specific regions or samples.
+
+Now, we can visualize PDAC niches, c-NB clusters, and clusters 9 and 10 localization within a single plot for a subset of representative samples:
+
+```{r representative-summary-plot IMC,fig.dim=c(9,6)}
+samples = c('P1-R1','P4-R1','P6-R3','P8-R2')
+
+seurat$cluster9 = ifelse(seurat$nbClust.K_20 == 9,'Y','N')
+seurat$cluster10 = ifelse(seurat$nbClust.K_20 == 10,'Y','N')
+
+seurat$cluster9 = factor(seurat$cluster9, levels = c('N','Y'))
+seurat$cluster10 = factor(seurat$cluster10, levels = c('N','Y'))
+
+p1 = lapply(samples, function(x){
+  KanPlot(seurat[,seurat$ROIs_Short == x]
+          , feature = 'Neighborhoods'
+          , pt.size = 0.25
+          , palette_discrete = pal2
+          , pt.shape = 16)
+})
+
+p2 = lapply(samples,function(x){
+  KanPlot(seurat[,seurat$ROIs_Short %in% x]
+          , feature = 'nbClust.K_20'
+          , pt.size = 0.25
+          , palette_discrete = pal
+          , pt.shape = 16) + 
+    scale_color_manual(values = setNames(pal, sort(unique(as.numeric(seurat$nbClust.K_20)))))
+})
+
+p3 = lapply(samples,function(x){
+  KanPlot(seurat[,seurat$ROIs_Short == x]
+          , feature = 'cluster9'
+          , pt.size = 0.25
+          , palette_discrete = c('ivory','#8A4198')
+          , pt.shape = 16)
+})
+
+p4 = lapply(samples,function(x){
+  KanPlot(seurat[,seurat$ROIs_Short == x]
+          , feature = 'cluster10'
+          , pt.size = 0.25
+          , palette_discrete = c('ivory','#5A9599')
+          , pt.shape = 16)
+})
+
+
+p1 = (wrap_plots(p1, ncol = 6, guides = 'collect') + 
+        plot_annotation('PDAC Niches'
+                        , theme = theme(plot.title = element_text(hjust = 0.5)))) & theme(legend.position = 'none')
+p2 = (wrap_plots(p2, ncol = 6, guides = 'collect') + 
+        plot_annotation('c-NB Clusters'
+                        , theme = theme(plot.title = element_text(hjust = 0.5)))) & theme(legend.position = 'none')
+p3 = (wrap_plots(p3, ncol = 6, guides = 'collect') + 
+        plot_annotation('c-NB Cluster 9'
+                        , theme = theme(plot.title = element_text(hjust = 0.5)))) & theme(legend.position = 'none')
+p4 = (wrap_plots(p4, ncol = 6, guides = 'collect') + 
+        plot_annotation('c-NB Cluster 10'
+                        , theme = theme(plot.title = element_text(hjust = 0.5)))) & theme(legend.position = 'none')
+
+p1
+p2
+p3
+p4
+
+wrap_plots(list(p1, p2, p3, p4), nrow = 4)
+```

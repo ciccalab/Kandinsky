@@ -1,0 +1,649 @@
+---
+title: "Kandinsky hot/cold areas"
+output:
+  html_document:
+    highlight: tango
+    code_folding: show
+    toc: true
+    toc_float: false
+    self_contained: true
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(warning = F, collapse = TRUE, highlight = TRUE, comment = "#>")
+```
+
+```{=html}
+<style type="text/css">
+pre code {
+max-width: 800px;  
+white-space: pre-wrap;
+}
+
+pre code .comment {
+color: #b0bec5;
+}
+
+#TOC {
+position: fixed;
+left: 20px;
+top: 100px;
+width: 350px;
+background-color: #f8f9fa;
+padding: 10px;
+border-radius: 5px;
+font-size: 14px;
+max-height: 90vh;
+overflow-y: auto;
+}
+
+body {
+margin-left: 300px;
+font-size: 12pt;
+
+}
+</style>
+```
+
+```{r setup,echo=F, message = F}
+library(Kandinsky)
+library(ggplot2)
+library(dplyr)
+library(patchwork)
+library(UCell)
+```
+
+# Introduction
+
+<hr />
+
+The following code replicates the analysis presented in the Kandinsky paper to investigate spatial pattern of CD74 gene expression in a colorectal cancer (CRC) sample, using **CosMx** and **Visium** spatial transcriptomic data.
+
+# CosMx
+
+<hr />
+
+Raw CosMx data and cell annotation files of CRC sample "CR48" were downloaded from [Zenodo](https://zenodo.org/records/10927005).
+
+The dataset consists of 93 fields of view (FOVs) from a **human CRC FFPE tissue**, profiled using the *CosMx Universal Cell Characterization RNA Panel*.
+
+Cell type annotation for all single cells in the dataset was generated with `InSituType` as part of an independent [study](https://www.cell.com/cancer-cell/fulltext/S1535-6108(24)00483-5).
+
+<br />
+
+## 1) Loading data
+
+<hr />
+
+In order to work with CosMx data using **Kandinsky**, we first need to set the **path to the folder** containing raw input data:
+
+
+```{r set-cosmx-path, echo = F}
+cosmx_path = '/Users/cgb01/repo/Kandinsky/data/CosMx/'
+```
+
+```{r, eval = F}
+cosmx_path = 'Kandinsky/data/CosMx/'
+```
+
+```{r list-file}
+list.files(cosmx_path)
+```
+
+Now we can import and load CosMx data into a `Seurat object` using the Kandinsky `prepare_cosmx_seurat()` function, by specifying:
+
+-   the `path` to the input folder
+
+-   the `dataset.id` which will be used to name the resulting Seurat object
+
+Additional parameters include:
+
+-   `pattern`: to selectively import only files whose filenames contain a specific string, useful when the folder includes input files from multiple datasets
+
+-   `fovs`: to load only the cells located within a specified list of FOVs. To load the full dataset, you can set `fovs = NULL` (default)
+
+```{r load-cosmx-data,fig.dim=c(4,4)}
+cosmx = prepare_cosmx_seurat(path = cosmx_path, dataset.id = 'CR48', pattern = 'CR48')
+```
+
+<br />
+
+## 2) c-NB identification
+
+<hr />
+
+Now that the new `Seurat object` is ready, we use **Kandinsky** to identify **cell neighborhoods (c-NBs)** based on cell-to-cell relationships using the `kandinsky_init()` function.
+
+Since we are working with CosMx data, we set the parameter `tech = 'cosmx'` to ensure Kandinsky correctly interprets the CosMx data format.
+
+For neighborhood identification, we use the **membrane distance method** (`nb.method = 'M'`) and set the distance threshold to 30um (`d.max = 30`).
+
+```{r init-kandinsky,fig.dim=c(4,4)}
+cosmx = kandinsky_init(cosmx, tech = 'cosmx', nb.method = 'M', d.max = 30)
+```
+
+<br />
+
+We can assess the **size of the identified c-NBs**, expressed as number of cells found within each c-NB, using the Kandinsky `nbSizePlot()` function:
+
+```{r nbSize}
+nbSizePlot(cosmx) + theme(aspect.ratio = 2)
+```
+
+Before continuing with the downstream analysis, we need to perform gene expression normalization using Seurat function `NormalizeData()`:
+
+```{r normalization}
+# Normalize counts
+cosmx = NormalizeData(cosmx)
+```
+
+<br />
+
+## 3) Hot/cold areas
+
+<hr />
+
+We can visualize single cell CD74 expression levels across different FOVs:
+
+```{r cd74-hot-cold-areas,fig.dim=c(12,9)}
+KanPlot(cosmx,'CD74', palette_cont = 'viridis')
+```
+
+We can define CD74 hot and cold areas according Getis-Ord Gi statistics calculated using Kandinsky function `hotspot_analysis()`.
+
+In particular, we can specify as parameter:
+
+-   `feature`: the name of the feature to use to compute Getis-Ord Gi\* statistics
+-   `sim`: number of Monte Carlo simulations to be run for estimating Local Gi\* coefficients significance
+-   `padj.thresh`: numeric value indicating the significance threshold to be applied to the adjusted p-values resulting from Monte Carlo simulations
+
+```{r hotspot}
+cosmx = hotspot_analysis(cosmx, feature = 'CD74', layer = 'data', sim=999, padj.thresh = 0.05)
+```
+
+
+We can now visualize  cells coloured according to whether they are assigned to hot or cold areas based on CD74 expression
+
+
+```{r hotspot-plot}
+KanPlot(cosmx, feature = 'CD74_clust', palette_discrete = c('dodgerblue3','firebrick3','gray85'))
+```
+
+
+## 4) Loading cell type annotation
+
+<hr />
+
+We can load the annotation file and store the cell type information within the `Seurat object` metadata.
+
+```{r load-cell-type-annotation,fig.dim=c(12,9)}
+# Add cell type annotation to CosMx metadata
+anno_file = list.files(cosmx_path, pattern = 'CosMx_S0_processed_metadata_plus_cell_anno', full.names = T)
+anno = readRDS(anno_file)
+head(anno)
+anno = anno[anno$sample == 'CR48',]
+anno = anno[,c('cell_ID','final_anno')]
+
+anno = sf::st_drop_geometry(anno)
+anno$cell_ID = gsub("c_1_","",anno$cell_ID)
+rownames(anno) = anno$cell_ID
+common = intersect(colnames(cosmx),rownames(anno))
+cosmx = cosmx[,rownames(anno)]
+
+cosmx = update_kandinsky(cosmx)
+anno = anno[colnames(cosmx),]
+cosmx$final_anno = as.character(anno$final_anno)
+
+message('CosMx dataset composed of ',nrow(anno),' cells')
+
+```
+
+We can now visualize our dataset using the Kandinsky `KanPlot()` function, with cells coloured according to their annotated cell types:
+
+```{r plot-cell-types,fig.dim=c(13,9)}
+KanPlot(cosmx,feature = 'final_anno') + 
+  scale_fill_manual(values = c('Epi' = 'green', 'FibroEndoMuscle' = 'magenta', 'Myeloid' = 'cyan', 'T/NK' = 'red', 'Plasma/B' = 'yellow'))
+```
+
+
+
+After selecting a subset of representative FOVs, we can now visualize the same subset of cells coloured according to:
+
+-   their cell type of origin
+-   CD74 expression
+-   whether they are assigned to hot or cold areas based on CD74 expression
+
+```{r visualize-representative-fovs,fig.dim=c(12,9)}
+fovs = c(154,157:159)
+
+(KanPlot(cosmx, feature = 'final_anno', fovs = fovs
+         , show_border = T, border.size = 0.04, border.col = 'gray70') +
+    scale_fill_manual(values = c('Epi' = 'green', 'FibroEndoMuscle' = 'magenta', 'Myeloid' = 'cyan', 'T/NK' = 'red', 'Plasma/B' = 'yellow'))) +
+  
+  KanPlot(cosmx, feature = 'CD74', fovs = fovs
+          , palette_cont = 'viridis', show_border = T, border.size = 0.04, border.col = 'gray70') +
+  
+  KanPlot(cosmx,feature = 'CD74_clust', fovs = fovs
+          , palette_discrete = c('dodgerblue3','firebrick3','gray85'), show_border = T, border.size = 0.04, border.col = 'gray70')
+```
+
+We can test significant enrichment of annotated cell types within CD74 hot and cold areas using one-tailed Fisher’s exact test:
+
+```{r cd74-celltype-overlap,fig.dim=c(5,9)}
+cd74 = model.matrix(data = cosmx@meta.data, ~ 0 + CD74_clust) %>% as.data.frame()
+colnames(cd74) = c('Cold','Hot','NS')
+
+immune = model.matrix(data = cosmx@meta.data, ~0 + final_anno) %>% as.data.frame()
+colnames(immune) = c('Epi','FibroEndoMuscle','Myeloid','Plasma/B','TNK')
+
+immune  = immune[,c('Epi','Myeloid','TNK')]
+
+all_res = lapply(colnames(immune),function(x){
+  fisher_hot = fisher.test(table(cd74$Hot, immune[[x]]), alternative = 'greater')$p.value
+  fisher_cold = fisher.test(table(cd74$Cold, immune[[x]]), alternative = 'greater')$p.value
+  return(data.frame(cell_type = x
+                    ,hot_pval = fisher_hot
+                    ,cold_pval = fisher_cold))
+})
+
+all_res = purrr::reduce(all_res, rbind)
+all_res$FDR = p.adjust(all_res$hot_pval, method = 'BH')
+
+
+cosmx_hot = list()
+for(c in c('Epi','Myeloid','TNK')){
+  fisher_hot = all_res[all_res$cell_type == c,]$FDR
+  
+  if(fisher_hot < 2.2*(10^-16)){
+    fisher_hot = expression('Fisher FDR < 2.2x10'^-16)
+  }else{
+    fisher_hot = paste0('Fisher FDR = ', format(fisher_hot, scientific = T, digits = 3))
+  }
+  
+  hot_props = table(cd74$Hot,immune[[c]]) %>% as.data.frame() %>% 
+    group_by(Var1) %>% 
+    mutate(prop = Freq/sum(Freq)) %>% ungroup() %>% 
+    filter(Var2 == 1)
+  
+  cosmx_hot[[c]] = ggplot(hot_props, aes(x = Var1, y = prop))+
+    theme_classic() + geom_bar(stat = 'identity', fill = 'firebrick3', color = 'black') +
+    scale_x_discrete(breaks = c('1','0'), limits = c('1','0'), labels = c('Hot','Rest')) +
+    labs(x = 'CD74 areas', y = paste0('Cells (%)')) +
+    scale_y_continuous(limits = c(0, (max(hot_props$prop)*1.1)), breaks = c(0,max(hot_props$prop)), labels = round(c(0,100*(max(hot_props$prop))), 1))+
+    annotate('text', x = 1.5, y = max(hot_props$prop)*1.1, label = fisher_hot) +
+    guides(y = guide_axis(cap = "both"), x = guide_axis(cap = "both")) + 
+    theme(axis.text = element_text(color='black'), aspect.ratio = 1)
+}
+
+wrap_plots(cosmx_hot, ncol = 1)
+```
+
+The results from Fisher's tests indicate an enrichment of both myeloid and T/NK cells within CD74 hot areas compared to other regions of the sample.
+
+Although CRC epithelial cells are not enriched in CD74 hot areas, findings from [Acha-Sagredo et al](https://www.cell.com/cancer-cell/fulltext/S1535-6108(24)00483-5) suggest that CRC cells can be induced to overexpress CD74 as a result of proximity to T/NK cell.
+
+We can corroborate this observation by dividing our CRC cells into two groups, based on whether or not at least one T/NK cells is present within their c-NBs.\
+We can then compare CD74 expression between these two groups of CRC cells via Wilcoxon Rank test.
+
+```{r cd74-epi-expression,fig.dim=c(9,6)}
+cosmx = nnMat(cosmx, label = 'final_anno')
+cosmx = nn_query(cosmx
+                 , query = "`T/NK` >0, final_anno == 'Epi'"
+                 , anno_name = 'Epi_type'
+                 , diffexpr = F
+                 , label = 'final_anno'
+                 , which = 'Epi')
+
+cosmx$CD74_expr = FetchData(cosmx, 'CD74', clean = 'none')[,1]
+
+cosmx_cd74_data = cosmx@meta.data[cosmx@meta.data$final_anno == 'Epi',c('Epi_type','CD74_expr')]
+
+pval = wilcox.test(CD74_expr ~ Epi_type, data = cosmx_cd74_data)$p.value
+
+if(pval < 2.2e-16){
+  pval = expression('Wilcoxon p-value < 2.2x10'^-16)
+}else{
+  pval = format(pval, scientific = T, digits = 3)
+}
+
+
+n_epi1 = nrow(cosmx_cd74_data[cosmx_cd74_data$Epi_type == 'N',])
+n_epi2 = nrow(cosmx_cd74_data[cosmx_cd74_data$Epi_type == 'Y',])
+
+dens1 = density(cosmx_cd74_data[cosmx_cd74_data$Epi_type == 'N',]$CD74_expr)$y
+dens2 = density(cosmx_cd74_data[cosmx_cd74_data$Epi_type == 'Y',]$CD74_expr)$y
+max_dens = max(c(dens1,dens2))
+min_dens = min(c(dens1,dens2))
+median1 = median(cosmx_cd74_data[cosmx_cd74_data$Epi_type == 'N',]$CD74_expr)
+median2 = median(cosmx_cd74_data[cosmx_cd74_data$Epi_type == 'Y',]$CD74_expr)
+
+ggplot(cosmx_cd74_data, aes(x = CD74_expr, fill = Epi_type)) +
+  theme_classic() + geom_density(alpha = 0.4)+
+  scale_x_continuous(breaks = c(min(cosmx_cd74_data$CD74_expr), median1, median2, max(cosmx_cd74_data$CD74_expr))
+                     , labels = round(c(min(cosmx_cd74_data$CD74_expr), median1, median2, max(cosmx_cd74_data$CD74_expr)), 1)) +
+  scale_y_continuous(breaks = c(min_dens, max_dens)
+                     , labels = round(c(min_dens, max_dens),2)) +
+  guides(y = guide_axis(cap = "both"), x = guide_axis(cap = "both")) +
+  labs(x = 'CD74 normalized expression', y = 'Density', fill = 'Epi type') +
+  annotate('text', x = median(cosmx_cd74_data$CD74_expr), y = max_dens, label = pval) +
+  scale_fill_manual(values = c('seagreen4','green')
+                    , labels = c(paste0('Epi (', n_epi1, ')'), paste0('Epi near T/NK (', n_epi2, ')'))) +
+  geom_vline(xintercept = median1, linetype = 'dashed', color = 'seagreen4') +
+  geom_vline(xintercept = median2, linetype = 'dashed', color = 'green')
+```
+
+Indeed, CRC cells with at least one T/NK cell within their c-NBs show a significantly higher CD74 expression compared to the rest of CRC cells.
+
+<br />
+
+# Visium
+
+<hr />
+
+The **Visium dataset** analysed in this vignette has been downloaded from [Zenodo]().
+
+It consists of a distinct tissue regions obtained from the same **human CRC FFPE sample** previously profiled with the *CosMx Universal Cell Characterization RNA Panel*.
+
+The *Visium Human Transcriptome Probe kit* (v1) was used to capture RNA molecules from the FFPE sample after tissue permeabilization, enabling gene expression quantification for \~18,000 human genes.
+
+After sequencing, Visium FASTQ files were processed with spaceranger (v2.0). Loupe Browser (v6.2) was used to visualize Visium spot-level gene expression data and the associated H&E image, to check for the presence of "in-tissue" spots located in empty regions of the tissue slide.
+
+A separate spot annotation file `A1_CR48_TissueType_Anno.csv` was generated.
+
+## 1) Loading data
+
+<hr />
+
+We first need to specify the **path to the folder** containing raw Visium input data.\
+Next, we import Visium data into R as a `Seurat object` using the `Load10X_Spatial()` function.
+
+Once the data is loaded, we perform initial quality checks. Specifically:
+
+-   Visium spots mapped to empty tissue regions are removed based on the `A1_CR48_TissueType_Anno.csv` annotation file
+-   Spots with fewer than 500 transcripts (UMI) and fewer than 300 unique genes detected are discarded
+-   Genes detected in fewer than 10 spots (after filtering out low-quality spots) are removed
+
+
+```{r, echo = FALSE}
+visium_path = '/Users/cgb01/repo/Kandinsky/data/Visium/'
+```
+
+```{r, eval = FALSE}
+visium_path = 'Kandinsky/data/Visium/'
+```
+
+```{r load-and-preprocess-visium}
+visium = Load10X_Spatial(
+  , data.dir = visium_path
+  , filename = "filtered_feature_bc_matrix.h5"
+  , assay = "Spatial"
+  , slice = 'CR48'
+  , filter.matrix = TRUE
+)   
+genes = rownames(visium)
+
+message("Total spots: ",ncol(visium))
+
+# Load spot annotation file (used to remove 'empty' spots)
+anno_spots = read.delim(paste0(visium_path,'A1_CR48_TissueType_Anno.csv'), sep = ',')
+rownames(anno_spots) = anno_spots$Barcode
+
+# Remove spots without tissue annotation (corresponding to empty regions)
+anno_spots = anno_spots[which(anno_spots$Location != ""),]
+
+
+# Remove spots corresponding to empty regions (if any)
+if(ncol(visium) > nrow(anno_spots)){
+  message("Removing ", ncol(visium) - nrow(anno_spots), " empty spots")
+  visium = visium[,which(colnames(visium) %in% rownames(anno_spots))]
+} else {
+  message("No empty spots detected")
+}
+
+anno_spots = anno_spots[colnames(visium),]
+visium = AddMetaData(visium, anno_spots$Location, col.name = "Location")
+
+
+# Remove low-quality spots
+visium = subset(x = visium, subset = nCount_Spatial >= 500)
+message(ncol(visium)," spots with at least 500 UMIs")
+
+visium = subset(x = visium, subset = nFeature_Spatial >= 300)
+message(ncol(visium)," spots with at least 300 genes detected")
+cell_id = colnames(visium)
+
+keep_genes = which(rowSums(LayerData(visium,'counts') > 0) >= 10)
+visium = subset(visium, features = keep_genes)
+dim(visium)
+```
+
+<br />
+
+## 2) s-NB identification
+
+<hr />
+
+Using Kandinsky `kandinsky_init()` function, we define spot neighbourhoods (s-NBs) based on the **Queen contiguity method** (`nb.method = ‘Q’`), selecting the first layer of neighboring spots around each spot
+
+We then use the Kandinsky `nb_expand()` function to include the **second closest layer** of spots in each s-NB.
+
+```{r kandinsky-init, fig.dim=c(4,8)}
+visium = kandinsky_init(visium
+                        , tech ='visium'
+                        , nb.method = 'Q'
+                        , res = 'high'
+                        , img = paste0(visium_path,'spatial/tissue_hires_image.png')
+)
+
+# Expand neighbourhood definition by including the second ring of surrounding spots
+visium = nb_expand(visium, maxorder = 2)
+```
+
+Moreover, we can assess the **size of identified s-NBs**, expressed as number of cells found within each s-NB, using the Kandinsky `nbSizePlot()` function:
+
+```{r}
+nbSizePlot(visium) + theme(aspect.ratio = 2)
+```
+
+The H&E image associated with the Visium sample is automatically stored in the Kandinsky slot `img`.\
+For visualization purposes, the user can create a **mask** of the H&E tissue slide, retaining only the image area covered by tissue, using the Kandinsky `he_mask()` function.
+
+```{r mask-he,fig.dim=c(6,6)}
+# Create a mask image starting from visium H&E staining image
+visium = he_mask(visium, stretch = T, sd_thresh = 7)
+
+SlidePlot(visium, img_type = 'img') + coord_fixed(1) +
+SlidePlot(visium, img_type = 'mask') + coord_fixed(1)
+```
+
+Before continuing with the downstream analysis, we need to perform gene expression normalization using Seurat function `NormalizeData()`:
+
+```{r normalize-cd74-expression,fig.dim=c(10,10)}
+visium = NormalizeData(visium)
+```
+
+<br />
+
+## 3) Hot/cold areas
+
+<hr />
+
+We can visualize CD74 expression levels across spots:
+
+```{r}
+KanPlot(visium, feature = 'CD74', palette_cont = 'viridis')
+```
+
+Now, we can define CD74 hot and cold areas according to Getis-Ord Gi statistics calculated using Kandinsky `hotspot_analysis()` function.
+
+```{r define-cd74-hot-cold-areas}
+# Define hot/cold areas of CD74 expression (default values used are the normalized counts stored in the 'data' layer)
+visium = hotspot_analysis(visium, feature='CD74', sim = 1999, padj.thresh = 0.05)
+
+KanPlot(visium, feature = 'CD74_clust', palette_discrete = c('dodgerblue3','firebrick3','gray85'))
+```
+
+Since Visium spots cover tissue regions that can generally contain multiple individual cells, we can use **cell type gene expression signatures** to estimate the abundance of different cell populations within each spot.
+
+We load the list of **CRC immune-related signatures** described in [Acha-Sagredo et al](https://www.cell.com/cancer-cell/fulltext/S1535-6108(24)00483-5). Based on our analysis of the CosMx CRC dataset, we revealed an association between CD74 hot areas and myeloid and T/NK cells.
+
+Now, we are interested in defining the **relationship** between **CD74 expression** and specific subpopulations of tumor-associated **macrophages** and **T/NK cells**.
+
+```{r, echo = FALSE}
+signatures = readRDS('/Users/cgb01/repo/Kandinsky/data/Visium/CRC_LCM_Ext_sigs.rds')
+```
+
+```{r load-signatures, eval = FALSE}
+signatures = readRDS('Kandinsky/data/Visium/CRC_LCM_Ext_sigs.rds')
+```
+
+We can calculate gene expression scores across spots for each immune-related signature using `UCell`.\
+Next, we define **hot and cold areas** for each immune signature using Kandinsky `hotspot_analysis()` function, considering the signature scores calculated with `UCell` across all spots .\
+
+```{r immune-hot-cold-areas-detection}
+# Test signatures related to TAMs/TNK subtypes or IFN production
+signatures = signatures[c(4,5,6,10,12,13,14,15)]
+
+# Calculate signature scores within each spot using UCell
+visium = UCell::AddModuleScore_UCell(visium, features = signatures, maxRank = 5000)
+
+visium = visium %>% 
+  FindVariableFeatures(., nfeatures = 5000, selection.method = "vst") %>% 
+  ScaleData() %>%
+  RunPCA(assay = "Spatial", verbose = FALSE,npcs = 50) %>%
+  FindNeighbors(reduction = "pca", dims = 1:30)
+
+# Smooth UCell scores across spots according to their 20 nearest neighbour in the PCA space
+visium = UCell::SmoothKNN(visium, signature.names = paste0(names(signatures),'_UCell'), k = 20)
+
+# Immune sig hot/cold areas
+for(s in paste0(names(signatures),'_UCell_kNN')){
+  visium = hotspot_analysis(visium, feature = s, sim = 1999, padj.thres = 0.05)
+}
+
+# Clean column names for hot/cold areas annotation
+colnames(visium@meta.data) = gsub('_UCell_kNN' ,'', colnames(visium@meta.data))
+```
+
+<br />
+
+When hot and cold areas are identified for more than one variable within the same dataset, the Kandinsky `hotspot_overlap` function can be used to create a new annotation that reflects the **overlap** between hot and cold areas for **two independent variables**, specified using `feat.1` and `feat.2` parameters.
+
+```{r hotspot-overlap,fig.dim=c(6,6)}
+KanPlot(visium, feature = 'M1_16_clust', palette_discrete = c('dodgerblue3','firebrick3','gray85'))
+
+visium = hotspot_overlap(visium, feat.1 = 'CD74', feat.2 = 'M1_16')
+
+KanPlot(visium, feature = 'CD74_M1_16_clust', palette_discrete = c('dodgerblue4','skyblue1','purple','firebrick4','firebrick1','gray85'), border.col = 'gray95')
+KanPlot(visium, feature = 'CD74_M1_16_clust', palette_discrete = c('gray85','skyblue1','gray85','gray85','firebrick1','gray85'), border.col = 'gray95')
+
+```
+
+We can **test** the association between CD74 hot and cold areas and each TAM or T/NK related signature using a one-tailed Fisher’s Exact test.\
+Specifically, we assess the overlap between CD74 hot/cold areas and hot/cold areas for each signature, respectively:
+
+```{r hot-cold-areas-enrich}
+res = list()
+
+for(s in paste0(names(signatures),'_clust')){
+  cd74 = model.matrix(data = visium@meta.data, ~ 0 + CD74_clust) %>% as.data.frame()
+  colnames(cd74) = c('Cold','Hot','NS')
+  
+  immune = model.matrix(data = visium@meta.data, formula(paste0("~0+", s))) %>% as.data.frame()
+  colnames(immune) = c('Cold','Hot','NS')
+  
+  fisher_hot = fisher.test(table(cd74$Hot, immune$Hot), alternative = 'greater')$p.value
+  fisher_cold = fisher.test(table(cd74$Cold, immune$Cold), alternative = 'greater')$p.value
+  tot_res = data.frame(signature = gsub("_clust","", s),
+                       hot_hot_pval = fisher_hot,
+                       cold_cold_pval = fisher_cold)
+  res[[ gsub("_clust","",s)]] = tot_res
+}
+
+res = purrr::reduce(res,rbind)
+
+res$hot_FDR = p.adjust(res$hot_hot_pval, method = 'BH')
+res$cold_FDR = p.adjust(res$cold_cold_pval, method = 'BH')
+rownames(res) = res$signature
+
+
+summary_res = res %>% dplyr::select(signature, hot_FDR, cold_FDR)
+summary_res = reshape2::melt(summary_res)
+```
+
+We can now visualize the association between CD74 expression levels and each TAM or T/NK related signature by
+
+```{r plot-hot-cold-enrich,fig.dim=c(12,7)}
+plots_hot = list()
+
+for(s in paste0(names(signatures),'_clust')){
+  print(s)
+  cd74 = model.matrix(data = visium@meta.data, ~ 0 + CD74_clust) %>% as.data.frame()
+  colnames(cd74) = c('Cold','Hot','NS')
+  
+  immune = model.matrix(data = visium@meta.data, formula(paste0("~0+",s))) %>% as.data.frame()
+  colnames(immune) = c('Cold','Hot','NS')
+  
+  fisher_hot = summary_res[summary_res$signature == gsub('_clust','',s) & summary_res$variable == 'hot_FDR',]$value
+  
+  if(fisher_hot < 2.2e-16){
+    fisher_hot = expression('Fisher FDR < 2.2x10'^-16)
+  }else{
+    fisher_hot = paste0('Fisher FDR = ',format(fisher_hot, scientific = TRUE, digits = 3))
+  }
+  
+  hot_props = table(cd74$Hot,immune$Hot) %>% as.data.frame() %>% 
+    group_by(Var1) %>% 
+    mutate(prop = Freq/sum(Freq)) %>% ungroup() %>% 
+    filter(Var2 == 1)
+  
+  plots_hot[[s]] = ggplot(hot_props,aes(x = Var1, y = prop)) + 
+    theme_classic() + geom_bar(stat = 'identity', fill = 'firebrick3', color = 'black') +
+    scale_x_discrete(breaks = c('1','0'), limits = c('1','0'), labels = c('Hot','Rest')) +
+    labs(x = 'CD74 area', y = paste0('Hot for ',gsub('_clust','',s),' (%)'), fill = paste0(gsub('_clust','',s),' area')) +
+    scale_y_continuous(limits = c(0,max(hot_props$prop)+0.05)
+                       , breaks = c(0,max(hot_props$prop))
+                       ,labels = round(100*c(0,max(hot_props$prop)),1)) +
+    annotate('text', x = 1.5, y = max(hot_props$prop) + 0.05, label = fisher_hot)+
+    guides(y = guide_axis(cap = "both"), x = guide_axis(cap = "both")) + 
+    theme(axis.text = element_text(color = 'black'))
+}
+
+wrap_plots(plots_hot, ncol = 4)
+
+plots_cold = list()
+for(s in paste0(names(signatures),'_clust')){
+  print(s)
+  cd74 = model.matrix(data = visium@meta.data, ~0 + CD74_clust) %>% as.data.frame()
+  colnames(cd74) = c('Cold','Hot','NS')
+  
+  immune = model.matrix(data = visium@meta.data, formula(paste0("~0+",s))) %>% as.data.frame()
+  colnames(immune) = c('Cold','Hot','NS')
+  
+  fisher_cold = summary_res[summary_res$signature == gsub('_clust','',s) & summary_res$variable == 'cold_FDR',]$value
+  if(fisher_cold < 2.2e-16){
+    fisher_cold = expression('Fisher FDR < 2.2x10'^-16)
+  }else{
+    fisher_cold = paste0('Fisher FDR = ',format(fisher_cold, scientific = T, digits = 3))
+  }
+  
+  cold_props = table(cd74$Cold, immune$Cold) %>% as.data.frame() %>% 
+    group_by(Var1) %>% 
+    mutate(prop = Freq/sum(Freq)) %>% ungroup() %>% 
+    filter(Var2 == 1)
+  
+  plots_cold[[s]] = ggplot(cold_props,aes(x = Var1, y = prop)) + 
+    theme_classic() + geom_bar(stat = 'identity', fill = 'dodgerblue3', color = 'black')+
+    scale_x_discrete(breaks = c('1','0')
+                     , limits = c('1','0')
+                     , labels = c('Cold','Rest')) +
+    labs(x = 'CD74 area', y = paste0('Cold for ',gsub('_clust','',s),' (%)'), fill = paste0(gsub('_clust','',s),' area')) +
+    scale_y_continuous(limits = c(0, max(cold_props$prop)+0.05)
+                       , breaks = c(0, max(cold_props$prop))
+                       , labels = round(100*c(0, max(cold_props$prop)),1)) +
+    annotate('text', x = 1.5, y = max(cold_props$prop) + 0.05, label = fisher_cold) +
+    guides(y = guide_axis(cap = "both"), x = guide_axis(cap = "both")) + 
+    theme(axis.text = element_text(color = 'black'))
+}
+wrap_plots(plots_cold, ncol = 4)
+```

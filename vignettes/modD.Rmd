@@ -1,0 +1,378 @@
+---
+title: "Kandinsky cell/spot co-localization"
+output:
+  html_document:
+    highlight: tango
+    code_folding: show
+    toc: true
+    toc_float: false
+    self_contained: true
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(warning = F, collapse = TRUE, highlight = TRUE, comment = "#>")
+```
+
+```{=html}
+<style type="text/css">
+pre code {
+max-width: 800px;  
+white-space: pre-wrap;
+}
+
+pre code .comment {
+color: #b0bec5;
+}
+
+#TOC {
+position: fixed;
+left: 20px;
+top: 100px;
+width: 350px;
+background-color: #f8f9fa;
+padding: 10px;
+border-radius: 5px;
+font-size: 14px;
+max-height: 90vh;
+overflow-y: auto;
+}
+
+body {
+margin-left: 300px;
+font-size: 12pt;
+
+}
+</style>
+```
+
+# Introduction
+
+<hr />
+
+The following code replicates the analysis shown in the Kandinsky paper to study co-localization between different cell types found in a breast cancer sample profiled with **10X Genomics Xenium platform**.
+
+<br />
+
+# Xenium
+
+<hr />
+
+The **Xenium** Breast Cancer dataset has been downloaded from [10X Genomics website](https://www.10xgenomics.com/datasets/xenium-prime-ffpe-human-breast-cancer).
+
+This sample has been analysed using the *Xenium Prime 5K Human Pan Tissue & Pathways Panel*.
+
+```{r setup, echo=F}
+library(Kandinsky)
+library(dplyr)
+options(future.globals.maxSize = 8000 * 1024^2)
+```
+
+<br />
+
+## 1) Loading data
+
+<hr />
+
+To work with Xenium data using Kandinsky, we first need to set the **path to the folder** containing Xenium raw input data.
+
+```{r set-path, echo=FALSE}
+path = '/hpcnfs/home/mariachiara.grieco/kandinsky_test/input/Xenium_data/'
+#path = '/SAN/colcc/ITH3/Pietro/Kandinsky/test_data/Xenium/Breast_5K/'
+
+```
+
+```{r, eval=F}
+# Import Xenium data
+path = 'Kandinsky/test_data/Xenium/Breast_5K/'
+```
+
+```{r }
+list.files(path)
+```
+
+At this point we can **import and load Xenium data** into a `Seurat object` using the Kandinsky function `prepare_xenium_seurat()`.
+
+We need to specify:
+
+-   the `path` to the input folder
+
+-   the `dataset.id` that will be used to name the Seurat dataset.
+
+Additional parameters include:
+
+-   `fovs`: to import only the cells mapped within the specified list of FOVS.\
+    If we want to import the whole dataset, we can set `fov = NULL` (default option)
+
+-   `h5`: a logical value indicating the type of input file to use for importing the Xenium cell expression count matrix.\
+    When set to `h5 = TRUE`, the function will use the R package rhdf5 (if installed) to import the count matrix from the `cell_feature_matrix.h5` file located in the Xenium folder.\
+    Alternatively, setting `h5 = FALSE` (the default) will import the expression count matrix by reading the compressed `cell_feature_matrix.tar.gz` file in the Xenium folder.
+
+```{r load-data}
+xen = prepare_xenium_seurat(path, dataset.id = 'Breast', h5 = FALSE)
+```
+
+Before proceeding with the analysis, we can remove single cells with a **low number of detected transcripts and genes**, using arbitrary thresholds.
+
+In this dataset, we will retain cells that have at least 25 detected transcripts across a minimum of 20 unique genes:
+
+```{r filter-cells}
+# Filter low-count cells
+ncol(xen)
+xen = subset(xen, subset = nCount_Xenium > 25)
+xen = subset(xen, subset = nFeature_Xenium > 20)
+ncol(xen)
+```
+
+<br />
+
+## 2) c-NB identification
+
+<hr />
+
+Now that the new `Seurat object` is ready, we can generate the associated Kandinsky data using the `kandinsky_init()` function.
+
+Since we are working with Xenium data, we specify the argument `tech = 'xenium'` to ensure Kandinsky recognizes the Xenium data format.
+
+We use Kandinsky to identify cell neighbourhoods based on **cell-to-cell centroid distance** (`nb.method = 'C'`), and setting a distance threshold of 40um (`d.max = 40`).
+
+```{r create-kandinsky-data}
+# Initialize Kandinsky
+xen = kandinsky_init(xen
+                     , tech = 'xenium'
+                     , nb.method = 'C'
+                     , d.max = 40)
+```
+
+<br />
+
+## 3) Data normalization and clustering
+
+<hr />
+
+To identify **major cell types** in our Xenium Breast cancer sample, we will use Seurat to perform a sketch-based pre-processing and clustering analysis pipeline.
+
+Specifically, we will first identify single-cell clusters on a **subset of 75K cells**, and then project the identified cluster into the full dataset to annotate the remaining cells excluded from the initial clustering step. Users can found more information about Seurat sketch-based analysis [here](https://satijalab.org/seurat/articles/seurat5_sketch_analysis).
+
+```{r cell-clustering}
+#Start cell clustering (sketch method)
+xen = NormalizeData(xen)
+
+xen <- FindVariableFeatures(xen)
+xen <- SketchData(object = xen,
+                  ncells = 75000,
+                  method = "LeverageScore",
+                  sketched.assay = "sketch"
+)   
+
+DefaultAssay(xen) <- "sketch"
+xen <- FindVariableFeatures(xen)
+xen <- ScaleData(xen)
+xen <- RunPCA(xen)
+xen <- FindNeighbors(xen, dims = 1:50)
+xen <- FindClusters(xen, resolution = 1.2)
+
+xen <- RunUMAP(xen, dims = 1:50, return.model = TRUE)
+
+xen <- ProjectData(object = xen,
+                   assay = "Xenium",
+                   full.reduction = "pca.full",
+                   sketched.assay = "sketch",
+                   sketched.reduction = "pca",
+                   umap.model = "umap",
+                   dims = 1:50,
+                   refdata = list(cluster_full = "seurat_clusters")
+)
+
+# Now that we have projected the full dataset, switch back to analyzing all cells
+DefaultAssay(xen) <- "Xenium"
+Idents(xen) = 'cluster_full'
+length(unique(xen$cluster_full))
+```
+
+<br />
+
+We have identified a total of **23 clusters**.
+
+We can now annotate each cluster for its corresponding **cell type** by inspecting cluster-specific marker genes through differential expression (DE) analysis using Seurat `FindAllMarkers()` function. In particular, we define the list of marker genes for each cluster by focusing on significantly up-regulated genes (adjusted p-value \< 0.05 and logFC \> 0.5).
+
+```{r, message=FALSE}
+library(presto)
+res = FindAllMarkers(xen, logfc.thresold = 0.1, min.pct = 0.1, only.pos = T)
+res = res %>% filter(p_val_adj < 0.05, avg_log2FC > 0.5)
+
+```
+
+```{r cell-type-annotation}
+res %>% group_by(cluster) %>% arrange(desc(avg_log2FC)) %>% ungroup() %>% arrange(cluster)
+
+# 23 clusters found by Seurat
+clust_names = seq_len(23) - 1
+
+names(clust_names) = c('Tumour.1','Fibro.1','Endo','TCD8','Macro','Tumour.2',
+                       'Fibro.2','Tumour.3','Tumour.4','Mono','Bcell','Tumour.5',
+                       'Tumour.6','TCD4','Plasma','PVL','Unassigned','DC.1',
+                       'MEC','Mast','Tumour.7','DC.2','Adipocytes')
+
+clust_names = data.frame(seurat_clust = clust_names,final_clust = names(clust_names))
+
+xen$cluster_full = as.numeric(as.character(xen$cluster_full))
+new_meta = merge(xen@meta.data, clust_names, by.x = 'cluster_full', by.y = 'seurat_clust')
+rownames(new_meta) = new_meta$cell_id
+new_meta = new_meta[colnames(xen),]
+xen@meta.data = new_meta
+xen$final_clust = factor(xen$final_clust,levels = sort(unique(xen$final_clust)))
+Idents(xen) = 'final_clust'
+xen$top_anno = unname(sapply(as.character(xen$final_clust),function(x){strsplit(x,split='\\.')[[1]][[1]]}))
+```
+
+<br />
+
+We can now visualize our single cells annotated according to their cell type of origin. Specifically, we will use **three** different visualization strategies:
+
+-   **markers dot plot**: the top 3 DE genes for each cell type will be displayed in a dot plot using the Seurat function `DotPlot()`;
+-   **Uniform Manifold Approximation and Projection (UMAP)**: cells will be visualized in a low-dimensional space (previously generated as part of the Seurat clustering pipeline with `RunUMAP()`) and coloured according to their cell type of origin;
+-   **spatial visualization**: Kandinsky function `KanPlot()` is used to map single cells into space according to their associated segmentation coordinates. Each cell will be coloured according to their cell type of origin.
+
+```{r plot-clusters, fig.dim=c(13,9), message = F}
+de_filtered  = res %>% group_by(cluster) %>% 
+  arrange(desc(avg_log2FC)) %>%
+  filter(p_val_adj < 0.05, avg_log2FC >= 1) %>% 
+  filter(row_number() <= 3) %>% 
+  ungroup() %>% arrange(cluster) %>% 
+  as.data.frame()
+
+genes = unique(de_filtered$gene)
+xen$final_clust = factor(xen$final_clust,levels = sort(unique(xen$final_clust)))
+Idents(xen) = 'final_clust'
+
+library(ggplot2)
+library(viridis)
+
+# Cell type marker dot plot
+DotPlot(xen, features = genes, dot.min = 0.05) + scale_color_viridis(option = 'viridis') +
+  theme(axis.text.x = element_text(size = 4, angle = 90), legend.text = element_text(size = 3), legend.key.size = unit(1, 'cm'), legend.title = element_text(size = 5)) + labs(x = '', y = '')
+
+pal = c("ivory1", "#ff0062","#e6ad1e", "cyan","#cfcf1b", "#FFCC99", "gray90", "#94FFB5","#f0f29d", 
+        "limegreen", "#e8e9fd", "#FFA405", "#FFA8BB", "lightcyan", "magenta", "dodgerblue3", "#00d1c3","#E0FF66",
+        "#ddbefa","indianred1", "#FFFF80", "#FFE100", "#ff7236")
+
+# UMAP
+DimPlot(xen, reduction = 'full.umap', cols = pal, raster.dpi = c(8000, 8000), pt.size = 5) + theme_void() + NoLegend()
+
+# KanPlot of representative sample region (upper-left sample quarter)
+max_x = median(xen$x_centroid)
+min_y = median(xen$y_centroid)
+KanPlot(subset(xen, subset = x_centroid > max_x & y_centroid< min_y),
+        feature = 'final_clust'
+        , palette_discrete = pal
+        , show_border = T
+        , border.size = 0.02)
+
+#Visualize the whole sample
+KanPlot(xen, feature = 'final_clust', palette_discrete = pal)
+```
+
+By examining the spatial visualization of the whole Xenium breast cancer slide generated with `KanPlot()`, we can notice a **highly variable density/abundance** of cells, particularly when comparing peri-tumoral and stromal regions.
+
+Having defined c-NBs with Kandinsky using a fixed centroid distance of 40um, we might have a relatively variable size of c-NBs depending on cell localization within the sample.
+
+To assess this variability, we can use the `nb_summary()` function from Kandinsky to get a text **summary of the range of c-NB size values** observed across all cells in the Xenium dataset.
+
+```{r nb-size-overview, fig.dim=c(5,8)}
+nb_summary(xen)
+
+# Get list of c-NB size for all cells
+tot_nb = data.frame(size = Matrix::colSums(as(KanData(xen,'nb'),'CsparseMatrix')))
+
+# Plot distribution of c-NB size values across cells
+labels = c(min(tot_nb$size), median(tot_nb$size), max(tot_nb$size))
+
+ggplot(tot_nb, aes(y = size)) + theme_classic()+
+  geom_density() + scale_y_reverse(breaks = (labels), labels = (labels))+
+  geom_hline(yintercept = labels[2], linetype = 'dashed') +
+  theme(axis.text.x = element_blank(), axis.line.x = element_blank(), axis.ticks.x = element_blank()) +
+  guides(y = guide_axis(cap = "both")) + labs(y = 'c-NB size', x = '')
+```
+
+<br />
+
+## 4) Co-localisation analysis
+
+<hr />
+
+Kandinsky implements a **co-localisation analysis module** to test for co-localisation or spatial dispersion between any pair of cell types present in the analysed dataset.
+
+Co-localisation analysis is performed by using the Kandinsky `jc_coloc()` function.
+
+The cell type annotation name is specified through the `label` parameter.The function will internally performs a **join count test** to calculate a co-localisation z-coefficient for each cell type pairs, with positive and negative coefficients indicating a tendency of co-localisation or dispersion between cell types, respectively.
+
+The main output of `jc_coloc()` is a heatmap plot displaying all co-localisation z-values computed by Kandinsky for any cell type combination. By setting the parameter `return.mat = TRUE`, the function will return a list object containing both the heatmap plot and a data frame reporting all the numeric co-localisation z-values computed by Kandinsky.
+
+```{r co-localization,fig.dim=c(10,10)}
+
+xen$final_clust = factor(xen$final_clust, levels = c(
+  'Bcell','Plasma','DC.1','DC.2','Mono','Macro',
+  'TCD4','TCD8','Mast','Tumour.1','Tumour.2',
+  'Tumour.3','Tumour.4','Tumour.5','Tumour.6','Tumour.7',
+  'MEC','Adipocytes','Endo',
+  'Fibro.1','Fibro.2','PVL','Unassigned'))
+
+coloc = jc_coloc(xen, label = 'final_clust', return.mat = TRUE)
+
+head(coloc$coloc_mat)
+
+coloc$plot + ggtitle('JC co-localization test')
+```
+
+<hr />
+
+From the co-localisation results, we noticed a **tendency** of myoepithelial cells (MEC) to co-localise with Tumour 5 and Tumour 6 cells.\
+We can check for **phenotypic differences** between this subset of tumour cells and the remaining tumour clusters via differential gene expression analysis:
+
+```{r tumour-de-analysis}
+
+de_tumour = FindMarkers(xen, ident.1 = c('Tumour.5','Tumour.6'), ident.2 = c('Tumour.4','Tumour.1','Tumour.2','Tumour.3','Tumour.7')
+                        , logfc.thresold = -Inf, return.thresh = 1.1, only.pos = FALSE)
+
+de_tumour$gene = rownames(de_tumour)
+de_tumour$comparison = '56_vs_12347'
+```
+
+To interpret differential gene expression results, we will use the package [fgsea](https://github.com/alserglab/fgsea) to perform pre-ranked gene set enrichment analysis considering the Hallmark gene gene sets from the Molecular Signature DataBase (MSigDB).
+
+```{r pathway-enrich}
+# Load list of Hallmark signatures
+h = system.file('extdata','MSigDB_Hallmark_sigs.rds', package = 'Kandinsky')
+h = readRDS(h)
+
+de_tumour = de_tumour %>% mutate(FC = 2^avg_log2FC) %>% arrange(desc(FC))
+
+# Run fgsea
+library(fgsea)
+stats = de_tumour$avg_log2FC
+names(stats) = de_tumour$gene
+
+set.seed(347548)
+gsea_res = fgsea(stats = stats, pathways = h)
+gsea_res = gsea_res %>% as.data.frame()
+
+# Clean fgsea result table
+gsea_res$pathway = gsub('HALLMARK_','',gsea_res$pathway)
+gsea_res = gsea_res[,c('pathway','padj','NES')] %>% filter(padj < 0.05) %>% 
+  arrange((NES)) %>% 
+  mutate(pathway = factor(pathway, levels = unique(pathway)), label = ifelse(NES > 0,'Enriched in Tumour 5/6','Depleted in Tumour 5/6'))
+
+# Plot significant enrichment results
+nes_limits = c(min(gsea_res$NES), max(gsea_res$NES))
+ggplot(gsea_res,aes(x = NES, y = pathway, fill = label))+
+  theme_classic() + geom_bar(stat = 'identity', color = 'black')+
+  scale_fill_manual(values = c('dodgerblue3','yellow'))+
+  scale_x_continuous(breaks = nes_limits, labels = round(nes_limits, 1))+
+  theme(axis.line.y = element_blank(), axis.ticks.y = element_blank(),
+        axis.text = element_text(color = 'black'), axis.text.y = element_text(size = 3),
+        legend.position = 'top')+
+  guides(y = guide_axis(cap = "both"), x = guide_axis(cap = "both"))+
+  labs(fill = '', y = '')
+```
+
+Tumour 5 and 6 cells showed increased interferon response and reduced proliferation potential compared to tumour cells in other clusters.
