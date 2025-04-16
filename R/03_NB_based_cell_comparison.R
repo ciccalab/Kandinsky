@@ -157,18 +157,17 @@ nn_query = function(data = NULL,query="tot_nn > 4",anno_name = 'query_class',dif
 #' @param seurat a Seurat object containing Kandinsky data (`KanData()`)
 #' @param n_clust numeric vector indicating the possible niche numbers to be tested to find the optimal number
 #' @param seed numeric, random seed for reproducibility. Default is set to 347548
-#' @param style clustering algorithm to be used. Must be one of the following: "mclust", "greed". Default is set to "mclust"
 #' @returns Seurat object with new `nbClust_` variable column stored in the Seurat meta.data
 #' @importFrom mclust mclustBIC Mclust
 #' @export
-nbCluster = function(seurat=NULL,n_clust=3:12,seed=347548,style=c('mclust','greed')){
-  if(length(style) >1){
-    style = NULL
-  }
-  if(is.null(style)){
-    message('Setting default clustering method "mclust"')
-  }
-  style = style %||% 'mclust'
+nbCluster = function(seurat=NULL,n_clust=3:12,seed=347548){
+ # if(length(style) >1){
+#    style = NULL
+#  }
+#  if(is.null(style)){
+#    message('Setting default clustering method "mclust"')
+#  }
+#  style = style %||% 'mclust'
   nnmat = KanData(seurat,'nnMat')$nnMat
   method = KanData(seurat,'nnMat')$nb.method
   set.seed(seed)
@@ -179,21 +178,21 @@ nbCluster = function(seurat=NULL,n_clust=3:12,seed=347548,style=c('mclust','gree
   scaled_nnmat = Matrix::Diagonal(x=(1/tot_nn),names = T) %*% as(as.matrix(nnmat),'CsparseMatrix')
   rownames(scaled_nnmat) = rownames(nnmat)
   scaled_nnmat = as.data.frame(as.matrix(scaled_nnmat))
-  if(style=='mclust'){
+ # if(style=='mclust'){
     message('Performing model-based clustering using mclust...')
     clusts = mclust::Mclust(scaled_nnmat,G=n_clust)
     seurat[[paste0("nbClust.",method)]] = as.character(clusts$classification[colnames(seurat)])
-  }else if(style=='greed'){
-    if (!requireNamespace('greed', quietly = TRUE)) {
-      stop("Please install greed to perform greedy clustering")
-    }
-    message('Performing model-based clustering using greed...')
-    clusts = greed::greed(scaled_nnmat,model=greed::DiagGmm(),alg = greed::Seed(),K=max(n_clust))
-    clusts = greed::clustering(clusts)
-    names(clusts) = rownames(na.omit(scaled_nnmat))
-    clusts[setdiff(colnames(seurat),names(clusts))] = NA
-    seurat[[paste0("nbClust.",method)]] = as.character(clusts[colnames(seurat)])
-  }
+#  }else if(style=='greed'){
+#    if (!requireNamespace('greed', quietly = TRUE)) {
+#      stop("Please install greed to perform greedy clustering")
+#    }
+#    message('Performing model-based clustering using greed...')
+#    clusts = greed::greed(scaled_nnmat,model=greed::DiagGmm(),alg = greed::Seed(),K=max(n_clust))
+#    clusts = greed::clustering(clusts)
+#    names(clusts) = rownames(na.omit(scaled_nnmat))
+#    clusts[setdiff(colnames(seurat),names(clusts))] = NA
+#    seurat[[paste0("nbClust.",method)]] = as.character(clusts[colnames(seurat)])
+#  }
   return(seurat)
 }
 
