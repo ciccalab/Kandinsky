@@ -512,13 +512,21 @@ seurat$Neighborhoods = as.character(seurat$Neighborhoods)
 We can now visualize a subset of our samples using the Kandinsky `KanPlot()` function, with cells colored according to their cell type of origin described in [Sussman et al.](https://aacrjournals.org/cancerres/article/84/14/2364/746369/Multiplexed-Imaging-Mass-Cytometry-Analysis):
 
 ```{r plot-cell-types IMC, fig.dim=c(13,9)}
-p1 = KanPlot(seurat[,seurat$ROIs_Short %in% unique(seurat$ROIs_Short)[c(1:5)]]
-             , feature = 'Cell_Types'
-             , theme = 'light'
-             , pt.size = 0.45
-             , palette_discrete = c24
-             , pt.shape = 16)
+samples = c('P1-R1','P4-R1','P6-R3','P8-R2')
+p1 = lapply(samples, function(x){
+  KanPlot(seurat[,seurat$ROIs_Short == x]
+          , feature = 'Neighborhoods'
+          , pt.size = 0.25
+          , palette_discrete = pal2
+          , pt.shape = 16)
+})
+
+p1 = (wrap_plots(p1, ncol = 6, guides = 'collect') + 
+        plot_annotation('PDAC Niches'
+                        , theme = theme(plot.title = element_text(hjust = 0.5)))) & theme(legend.position = 'none')
+
 p1
+
 ```
 
 <br />
@@ -561,19 +569,23 @@ We can now visually compare the **spatial distribution** of the new c-NB cluster
 pal = c('#ADE2D0','#FF6F00','#84D7E1','#C71000','#FF6348','#008EA0','#FF95A8','#3D3B25','#8A4198','#5A9599')
 pal2 = c('#4BB749','#D42B91','#E2A725','#00807E','#8DC1E9','#ECE949','#44AA99','#999933','#864E9F','#FAC0B2')
 
-p2 = KanPlot(seurat[,seurat$ROIs_Short %in% unique(seurat$ROIs_Short)[c(1:5)]]
-             , feature = 'Neighborhoods'
-             , pt.size = 0.45
-             , palette_discrete = pal2, pt.shape = 16)
 
-p3 = KanPlot(seurat[,seurat$ROIs_Short %in% unique(seurat$ROIs_Short)[c(1:5)]], 
-             , feature = 'nbClust.K_20'
-             , pt.size = 0.45
-             , palette_discrete = pal, pt.shape = 16) + 
-  scale_color_manual(values = setNames(pal, sort(unique(as.numeric(seurat$nbClust.K_20)))))
+p2 = lapply(samples,function(x){
+  KanPlot(seurat[,seurat$ROIs_Short %in% x]
+          , feature = 'nbClust.K_20'
+          , pt.size = 0.25
+          , palette_discrete = pal
+          , pt.shape = 16) + 
+    scale_color_manual(values = setNames(pal, sort(unique(as.numeric(seurat$nbClust.K_20)))))
+})
 
+p2 = (wrap_plots(p2, ncol = 6, guides = 'collect') + 
+        plot_annotation('c-NB Clusters'
+                        , theme = theme(plot.title = element_text(hjust = 0.5)))) & theme(legend.position = 'none')
 
-p2 / p3 & theme(legend.position = "none")
+p2
+
+p1 / p2 & theme(legend.position = "none")
 
 ```
 
@@ -707,109 +719,3 @@ ggplot(cluster910_prop %>% filter(is_Bcell == 'Y'), aes(x = nbClust.K_20, y = pe
 ```
 
 Indeed, cluster 9 shows a significantly higher percentage of B-cells (\~35%) compared to cluster 10 (\~5%).
-
-We can examine the distribution of **B-cell rich** cluster 9 across samples, and compare it with the distribution of cluster 10:
-
-```{r, cluster-9-10-frequency IMC,fig.dim=c(6,3)}
-imc_meta$patient_id = sapply(imc_meta$cell_ID,function(x){strsplit(x,split = '-')[[1]][[1]]})
-
-freqs_clust910 = imc_meta %>%
-  group_by(ROIs_Short) %>%  count(nbClust.K_20, .drop = FALSE) %>%
-  mutate(prop = n/sum(n)) %>% 
-  ungroup() %>% 
-  filter(nbClust.K_20 %in% c(9,10)) %>%  mutate(percentage = prop*100)
-
-all_rois = freqs_clust910 %>% filter(nbClust.K_20 == 10) %>% arrange(desc(percentage))
-all_rois = all_rois$ROIs_Short
-freqs_clust910$ROIs_Short = factor(freqs_clust910$ROIs_Short, levels = all_rois)
-
-library(scales)
-bar = ggplot(freqs_clust910, aes(x = ROIs_Short, y = percentage, fill = nbClust.K_20)) + 
-  theme_classic() + 
-  geom_bar(width = 0.75, stat = 'identity', position = position_dodge2(preserve = "single", padding = 0), color = 'black')+
-  scale_fill_manual(values = c('9' = '#8A4198','10' = '#5A9599'))+
-  theme(axis.line.x = element_blank()
-        , axis.ticks.x = element_blank()
-        , axis.text.x = element_text(colour = 'black', angle = 90))
-
-bar = bar + scale_y_continuous(breaks = sort(c(1, min(freqs_clust910[["percentage"]]),
-                                               max(freqs_clust910[["percentage"]])))
-                               , labels = sort(c(1, round(c(min(freqs_clust910[["percentage"]]),
-                                                            max(freqs_clust910[["percentage"]])),1)))
-                               , trans = scales::pseudo_log_trans())+
-  guides(x = guide_axis(cap = "both"),y = guide_axis(cap = "both"))+
-  theme(axis.line = element_line(linewidth = 0.5, lineend = "round")
-        , axis.ticks = element_line(linewidth = 0.5))+
-  labs(y = '% Cells (log scale)', x = 'ROI', fill = 'Cluster')+
-  geom_hline(yintercept = 1, linetype = 'dashed')
-
-bar
-```
-
-We can observe that cluster 10 appears across most of the ROIs included in the dataset, while cluster 9 is more sparse and localized only within specific regions or samples.
-
-Now, we can visualize PDAC niches, c-NB clusters, and clusters 9 and 10 localization within a single plot for a subset of representative samples:
-
-```{r representative-summary-plot IMC,fig.dim=c(9,6)}
-samples = c('P1-R1','P4-R1','P6-R3','P8-R2')
-
-seurat$cluster9 = ifelse(seurat$nbClust.K_20 == 9,'Y','N')
-seurat$cluster10 = ifelse(seurat$nbClust.K_20 == 10,'Y','N')
-
-seurat$cluster9 = factor(seurat$cluster9, levels = c('N','Y'))
-seurat$cluster10 = factor(seurat$cluster10, levels = c('N','Y'))
-
-p1 = lapply(samples, function(x){
-  KanPlot(seurat[,seurat$ROIs_Short == x]
-          , feature = 'Neighborhoods'
-          , pt.size = 0.25
-          , palette_discrete = pal2
-          , pt.shape = 16)
-})
-
-p2 = lapply(samples,function(x){
-  KanPlot(seurat[,seurat$ROIs_Short %in% x]
-          , feature = 'nbClust.K_20'
-          , pt.size = 0.25
-          , palette_discrete = pal
-          , pt.shape = 16) + 
-    scale_color_manual(values = setNames(pal, sort(unique(as.numeric(seurat$nbClust.K_20)))))
-})
-
-p3 = lapply(samples,function(x){
-  KanPlot(seurat[,seurat$ROIs_Short == x]
-          , feature = 'cluster9'
-          , pt.size = 0.25
-          , palette_discrete = c('ivory','#8A4198')
-          , pt.shape = 16)
-})
-
-p4 = lapply(samples,function(x){
-  KanPlot(seurat[,seurat$ROIs_Short == x]
-          , feature = 'cluster10'
-          , pt.size = 0.25
-          , palette_discrete = c('ivory','#5A9599')
-          , pt.shape = 16)
-})
-
-
-p1 = (wrap_plots(p1, ncol = 6, guides = 'collect') + 
-        plot_annotation('PDAC Niches'
-                        , theme = theme(plot.title = element_text(hjust = 0.5)))) & theme(legend.position = 'none')
-p2 = (wrap_plots(p2, ncol = 6, guides = 'collect') + 
-        plot_annotation('c-NB Clusters'
-                        , theme = theme(plot.title = element_text(hjust = 0.5)))) & theme(legend.position = 'none')
-p3 = (wrap_plots(p3, ncol = 6, guides = 'collect') + 
-        plot_annotation('c-NB Cluster 9'
-                        , theme = theme(plot.title = element_text(hjust = 0.5)))) & theme(legend.position = 'none')
-p4 = (wrap_plots(p4, ncol = 6, guides = 'collect') + 
-        plot_annotation('c-NB Cluster 10'
-                        , theme = theme(plot.title = element_text(hjust = 0.5)))) & theme(legend.position = 'none')
-
-p1
-p2
-p3
-p4
-
-wrap_plots(list(p1, p2, p3, p4), nrow = 4)
-```

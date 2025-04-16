@@ -539,7 +539,7 @@ KanPlot(visium, feature = 'CD74_M1_16_clust', palette_discrete = c('gray85','sky
 
 ```
 
-We can **test** the association between CD74 hot and cold areas and each TAM or T/NK related signature using a one-tailed Fisher’s Exact test.\
+We can **test** the association between CD74 hot and cold areas and each TAM or T/NK related signature using a one-tailed Fisher’s exact test.\
 Specifically, we assess the overlap between CD74 hot/cold areas and hot/cold areas for each signature, respectively:
 
 ```{r hot-cold-areas-enrich}
