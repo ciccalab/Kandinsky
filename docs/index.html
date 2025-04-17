@@ -93,22 +93,22 @@
 <div class="section level2">
 <h2 id="overview-">Overview <img src="reference/figures/logo.png" align="right" height="138" alt=""><a class="anchor" aria-label="anchor" href="#overview-"></a>
 </h2>
-<p>Kandinsky is a spatial analysis toolkit designed to provide a compendium of methods to study cell and spot spatial neighbourhoods using spatial transcriptomic and proteomic data.</p>
+<p>Kandinsky is an R package developed for deriving functional insights on cellular ecosystems from neighbour analysis of spatial omics data. Kandinsky implements different approaches for cell or spot neighbourhood identification and analysis, including supervised and unsupervised clustering for downstream functional investigations, spatial co-localisation or dispersion, and detection of gene expression patterns.</p>
 <p><img src="reference/figures/Kandinsky_Overview.png" align="center" height="500" alt=""></p>
-<p>As an input, Kandinsky uses gene or protein expression values and cell or spot coordinates deriving from any spatial transcriptomic or proteomic platform and implements helper functions to automate their loading and formatting into a Seurat object.<br>
-Starting from their coordinates, Kandinsky groups cells or spots into neighbourhoods (c/s-NBs) according to their reciprocal spatial relationships inferred with five methods:<br>
+<p>As input, Kandinsky requires: gene or protein expression values cell or spot coordinates derived from spatial transcriptomic or proteomic data.</p>
+<p>Kandinsky implements helper functions to process data loading and formatting into a Seurat object. Using spatial coordinates, Kandinsky groups cells or spots into neighbourhoods (c/s-NBs) according to spatial relationships measured as inferred with five methods:<br>
 - K-nearest neighbours (KNN);<br>
 - Cell/spot centroid distance;<br>
 - Delaunay triangulation;<br>
 - Queen contiguity;<br>
-- cell membrane distance.</p>
-<p>KNN, centroid distance, and Delaunay triangulation are applicable to both spot and cell data, while Queen contiguity is limited to spot data and membrane distances can be measured only from single cell segmentation data.</p>
-<p>Once defined, c/s-NBs can be used to derive clusters with similar composition, measure spatial co-localisation or dispersion and infer hot and cold gene expression areas.</p>
+- Membrane distance.</p>
+<p>KNN, centroid distance, and Delaunay triangulation are applicable to both spots and cells, while Queen contiguity is limited to spot data and membrane distances can be measured only from single cell segmentation data.</p>
+<p>Once defined, c/s-NBs can be used together with cell/spot type annotation and expression values to (1) group cells, spots, or c/s-NBs, (2) measure their co-localisation or dispersion and (3) derive hot and cold expression areas within the tissue.</p>
 </div>
 <div class="section level2">
 <h2 id="setting-up-kandinsky-environment">Setting up Kandinsky environment<a class="anchor" aria-label="anchor" href="#setting-up-kandinsky-environment"></a>
 </h2>
-<p>To speed up package installation in R, user can first create a conda environment starting from the environment.yaml file. This will make available most of Kandinsky dependencies before downloading it.</p>
+<p>To simplify the installation process, users can first set up a conda environment using the environment.yaml file.</p>
 <p>For conda users:</p>
 <pre><code>conda env create -f environment.yaml</code></pre>
 <p>For mamba users:</p>
@@ -128,7 +128,7 @@ R</code></pre>
 <pre><code>cd path/to/local/folder
 git clone https://github.com/ciccalab/Kandinsky.git
 #Alternative code for SSH connection: git clone git@github.com:ciccalab/Kandinsky.git</code></pre>
-<p>After downloading the repository, change directory to <code>Kandinsky/</code> and use <code>devtools</code> to install the package:</p>
+<p>Then, move into <code>Kandinsky/</code> folder and install the package:</p>
 <pre><code>cd Kandinsky/
 R</code></pre>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
