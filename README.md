@@ -12,11 +12,11 @@ As input, Kandinsky requires:
 	cell or spot coordinates 
 	derived from spatial transcriptomic or proteomic data.
 
-Kandinsky implements helper functions to process data loading and formatting into a Seurat object. Using spatial coordinates, Kandinsky groups cells or spots into neighbourhoods (c/s-NBs) according to spatial relationships measured as inferred with five methods:
-	- K-nearest neighbours (KNN);
-	- Cell/spot centroid distance;
-	- Delaunay triangulation;
-	- Queen contiguity;
+Kandinsky implements helper functions to process data loading and formatting into a Seurat object. Using spatial coordinates, Kandinsky groups cells or spots into neighbourhoods (c/s-NBs) according to spatial relationships measured as inferred with five methods:\
+	- K-nearest neighbours (KNN);\
+	- Cell/spot centroid distance;\
+	- Delaunay triangulation;\
+	- Queen contiguity;\
 	- Membrane distance.
 
 KNN, centroid distance, and Delaunay triangulation are applicable to both spots and cells, while Queen contiguity is limited to spot data and membrane distances can be measured only from single cell segmentation data.
