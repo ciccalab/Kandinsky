@@ -533,12 +533,10 @@ as.kandinsky = function(list){
 #' Must be one of the following:
 #' 'Q': queen contiguity method,check for contact (not overlap) between any edge or side od two polygons (refers to the queen movement rule in chess). Currently only applicable for Visium/Visium-HD data
 #' 'C': centroid-based method, use maximum centroid distance threshold to identify spot/cell neighbours
-#' 'D': Delaunay triangulation method
 #' 'K': KNN method, define k closest neighbours to each spot/cell
 #' 'M': membrane-based method, check for the occurrence of a physical contact/intersection within a distance threshold between cell boundaries. Not applicable in the case of Visium spots.
 #' @param k numeric, number of nearest neighbours to be set when `nb.method = K`
 #' @param d.max numeric, maximum centroid distance threshold to be set when `nb.method = C | M`
-#' @param soi boolean, whether or not filter Delaunay network to keep sphere of influence (SOI) graph. Default is FALSE
 #' @param hd.snap numeric, scaling factor used on minimal distance between Visium-HD bins to define neighbour relationships. Only Applied when `nb.method = Q`. Higher `hd.snap` values will give lower distance thresholds.
 #' @param ids_other character string specifying variable name to be used as cell identifiers when argument tech is set to "other"
 #' @param xcoord_other character string specifying variable name to be used as x coordinates when argument tech is set to "other"
@@ -551,9 +549,8 @@ kandinsky_init = function(seurat=NULL,tech='visium',
                           tx_path=NULL,
                           fov_path = NULL,
                           poly_path = NULL,
-                          nb.method = c('Q','C','D','K','M'),
+                          nb.method = c('Q','C','K','M'),
                           k=20,d.max=40,
-                          soi=F,
                           hd.snap=10,
                           ids_other = NULL,
                           xcoord_other=NULL,
@@ -638,9 +635,6 @@ kandinsky_init = function(seurat=NULL,tech='visium',
   }else if(nb.method=='C'){
     kandinsky$nb = centroid_nb(kandinsky$sf,d.max=d.max)
     kandinsky$nb.type = paste0('C_',d.max)
-  }else if(nb.method=='D'){
-    kandinsky$nb = tri_nb(kandinsky$sf,soi=soi)
-    kandinsky$nb.type = paste0('D_',paste0('soi',soi))
   }else if(nb.method == 'M'){
     kandinsky$nb = membrane_nb(kandinsky$sf,d.max=d.max)
     kandinsky$nb.type = paste0('M_',d.max)
