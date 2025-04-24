@@ -108,7 +108,45 @@ cosmx = prepare_cosmx_seurat(path = cosmx_path, dataset.id = 'CR48', pattern = '
 
 <br />
 
-## 2) c-NB identification
+
+## 2) Loading cell type annotation
+
+<hr />
+
+We can load the annotation file and store the cell type information within the `Seurat object` metadata.
+
+```{r load-cell-type-annotation,fig.dim=c(12,9)}
+# Add cell type annotation to CosMx metadata
+anno_file = list.files(cosmx_path, pattern = 'CosMx_S0_processed_metadata_plus_cell_anno', full.names = T)
+anno = readRDS(paste0(cosmx_path,anno_file))
+head(anno)
+anno = anno[anno$sample == 'CR48',]
+anno = anno[,c('cell_ID','final_anno')]
+
+anno = sf::st_drop_geometry(anno)
+anno$cell_ID = gsub("c_1_","",anno$cell_ID)
+rownames(anno) = anno$cell_ID
+common = intersect(colnames(cosmx),rownames(anno))
+cosmx = cosmx[,rownames(anno)]
+
+cosmx = update_kandinsky(cosmx)
+anno = anno[colnames(cosmx),]
+cosmx$final_anno = as.character(anno$final_anno)
+
+message('CosMx dataset composed of ',nrow(anno),' cells')
+
+```
+
+We can now visualize our dataset using the Kandinsky `KanPlot()` function, with cells coloured according to their annotated cell types:
+
+```{r plot-cell-types,fig.dim=c(13,9)}
+KanPlot(cosmx,feature = 'final_anno') + 
+  scale_fill_manual(values = c('Epi' = 'green', 'FibroEndoMuscle' = 'magenta', 'Myeloid' = 'cyan', 'T/NK' = 'red', 'Plasma/B' = 'yellow'))
+```
+
+<br />
+
+## 3) c-NB identification
 
 <hr />
 
@@ -139,7 +177,7 @@ cosmx = NormalizeData(cosmx)
 
 <br />
 
-## 3) Hot/cold areas
+## 4) Hot/cold areas
 
 <hr />
 
@@ -166,43 +204,7 @@ We can now visualize  cells coloured according to whether they are assigned to h
 
 
 ```{r hotspot-plot}
-KanPlot(cosmx, feature = 'CD74_clust', palette_discrete = c('dodgerblue3','firebrick3','gray85'))
-```
-
-
-## 4) Loading cell type annotation
-
-<hr />
-
-We can load the annotation file and store the cell type information within the `Seurat object` metadata.
-
-```{r load-cell-type-annotation,fig.dim=c(12,9)}
-# Add cell type annotation to CosMx metadata
-anno_file = list.files(cosmx_path, pattern = 'CosMx_S0_processed_metadata_plus_cell_anno', full.names = T)
-anno = readRDS(anno_file)
-head(anno)
-anno = anno[anno$sample == 'CR48',]
-anno = anno[,c('cell_ID','final_anno')]
-
-anno = sf::st_drop_geometry(anno)
-anno$cell_ID = gsub("c_1_","",anno$cell_ID)
-rownames(anno) = anno$cell_ID
-common = intersect(colnames(cosmx),rownames(anno))
-cosmx = cosmx[,rownames(anno)]
-
-cosmx = update_kandinsky(cosmx)
-anno = anno[colnames(cosmx),]
-cosmx$final_anno = as.character(anno$final_anno)
-
-message('CosMx dataset composed of ',nrow(anno),' cells')
-
-```
-
-We can now visualize our dataset using the Kandinsky `KanPlot()` function, with cells coloured according to their annotated cell types:
-
-```{r plot-cell-types,fig.dim=c(13,9)}
-KanPlot(cosmx,feature = 'final_anno') + 
-  scale_fill_manual(values = c('Epi' = 'green', 'FibroEndoMuscle' = 'magenta', 'Myeloid' = 'cyan', 'T/NK' = 'red', 'Plasma/B' = 'yellow'))
+KanPlot(cosmx, feature = 'CD74_clust', palette_discrete = c('dodgerblue3','firebrick3','#D9D9D9'))
 ```
 
 
@@ -217,14 +219,14 @@ After selecting a subset of representative FOVs, we can now visualize the same s
 fovs = c(154,157:159)
 
 (KanPlot(cosmx, feature = 'final_anno', fovs = fovs
-         , show_border = T, border.size = 0.04, border.col = 'gray70') +
+         , show_border = T, border.size = 0.1, border.col = '#808285') +
     scale_fill_manual(values = c('Epi' = 'green', 'FibroEndoMuscle' = 'magenta', 'Myeloid' = 'cyan', 'T/NK' = 'red', 'Plasma/B' = 'yellow'))) +
   
   KanPlot(cosmx, feature = 'CD74', fovs = fovs
-          , palette_cont = 'viridis', show_border = T, border.size = 0.04, border.col = 'gray70') +
+          , palette_cont = 'viridis', show_border = T, border.size = 0.1, border.col = '#808285') +
   
   KanPlot(cosmx,feature = 'CD74_clust', fovs = fovs
-          , palette_discrete = c('dodgerblue3','firebrick3','gray85'), show_border = T, border.size = 0.04, border.col = 'gray70')
+          , palette_discrete = c('#1A6AA0','#A94349','#D9D9D9'), show_border = T, border.size = 0.1, border.col = '#808285')
 ```
 
 We can test significant enrichment of annotated cell types within CD74 hot and cold areas using one-tailed Fisher’s exact test:
@@ -266,16 +268,18 @@ for(c in c('Epi','Myeloid','TNK')){
     filter(Var2 == 1)
   
   cosmx_hot[[c]] = ggplot(hot_props, aes(x = Var1, y = prop))+
-    theme_classic() + geom_bar(stat = 'identity', fill = 'firebrick3', color = 'black') +
+    theme_classic() + geom_bar(stat = 'identity', fill = ifelse(
+      c == 'Epi','green',ifelse(c == 'Myeloid','cyan','red')
+    ), color = 'black') +
     scale_x_discrete(breaks = c('1','0'), limits = c('1','0'), labels = c('Hot','Rest')) +
-    labs(x = 'CD74 areas', y = paste0('Cells (%)')) +
+    labs(x = 'CD74 areas', y = paste0('Area (%)')) +
     scale_y_continuous(limits = c(0, (max(hot_props$prop)*1.1)), breaks = c(0,max(hot_props$prop)), labels = round(c(0,100*(max(hot_props$prop))), 1))+
     annotate('text', x = 1.5, y = max(hot_props$prop)*1.1, label = fisher_hot) +
     guides(y = guide_axis(cap = "both"), x = guide_axis(cap = "both")) + 
     theme(axis.text = element_text(color='black'), aspect.ratio = 1)
 }
 
-wrap_plots(cosmx_hot, ncol = 1)
+wrap_plots(cosmx_hot[c('Myeloid','TNK','Epi')], ncol = 1)
 ```
 
 The results from Fisher's tests indicate an enrichment of both myeloid and T/NK cells within CD74 hot areas compared to other regions of the sample.
@@ -318,7 +322,7 @@ median1 = median(cosmx_cd74_data[cosmx_cd74_data$Epi_type == 'N',]$CD74_expr)
 median2 = median(cosmx_cd74_data[cosmx_cd74_data$Epi_type == 'Y',]$CD74_expr)
 
 ggplot(cosmx_cd74_data, aes(x = CD74_expr, fill = Epi_type)) +
-  theme_classic() + geom_density(alpha = 0.4)+
+  theme_classic() + geom_density(alpha = 0.4,color=NA)+
   scale_x_continuous(breaks = c(min(cosmx_cd74_data$CD74_expr), median1, median2, max(cosmx_cd74_data$CD74_expr))
                      , labels = round(c(min(cosmx_cd74_data$CD74_expr), median1, median2, max(cosmx_cd74_data$CD74_expr)), 1)) +
   scale_y_continuous(breaks = c(min_dens, max_dens)
@@ -326,10 +330,11 @@ ggplot(cosmx_cd74_data, aes(x = CD74_expr, fill = Epi_type)) +
   guides(y = guide_axis(cap = "both"), x = guide_axis(cap = "both")) +
   labs(x = 'CD74 normalized expression', y = 'Density', fill = 'Epi type') +
   annotate('text', x = median(cosmx_cd74_data$CD74_expr), y = max_dens, label = pval) +
-  scale_fill_manual(values = c('seagreen4','green')
-                    , labels = c(paste0('Epi (', n_epi1, ')'), paste0('Epi near T/NK (', n_epi2, ')'))) +
-  geom_vline(xintercept = median1, linetype = 'dashed', color = 'seagreen4') +
-  geom_vline(xintercept = median2, linetype = 'dashed', color = 'green')
+  scale_fill_manual(values = c('#2E8B57','#80E580')
+                    , labels = c(paste0('Rest of CRC cells (', n_epi1, ')'), paste0('CRC cells near T/NK (', n_epi2, ')'))) +
+  geom_vline(xintercept = median1, linetype = 'dashed', color = '#2E8B57') +
+  geom_vline(xintercept = median2, linetype = 'dashed', color = '#80E580') + 
+  coord_fixed(10)
 ```
 
 Indeed, CRC cells with at least one T/NK cell within their c-NBs show a significantly higher CD74 expression compared to the rest of CRC cells.
@@ -478,9 +483,9 @@ Now, we can define CD74 hot and cold areas according to Getis-Ord Gi statistics 
 
 ```{r define-cd74-hot-cold-areas}
 # Define hot/cold areas of CD74 expression (default values used are the normalized counts stored in the 'data' layer)
-visium = hotspot_analysis(visium, feature='CD74', sim = 1999, padj.thresh = 0.05)
+visium = hotspot_analysis(visium, feature='CD74', sim = 999, padj.thresh = 0.05)
 
-KanPlot(visium, feature = 'CD74_clust', palette_discrete = c('dodgerblue3','firebrick3','gray85'))
+KanPlot(visium, feature = 'CD74_clust', palette_discrete = c('#1A6AA0','#A94349','#D9D9D9'))
 ```
 
 Since Visium spots cover tissue regions that can generally contain multiple individual cells, we can use **cell type gene expression signatures** to estimate the abundance of different cell populations within each spot.
@@ -502,7 +507,7 @@ Next, we define **hot and cold areas** for each immune signature using Kandinsky
 
 ```{r immune-hot-cold-areas-detection}
 # Test signatures related to TAMs/TNK subtypes or IFN production
-signatures = signatures[c(4,5,6,10,12,13,14,15)]
+signatures = signatures[c(4,5,6,10,12,13,14)]
 
 # Calculate signature scores within each spot using UCell
 visium = UCell::AddModuleScore_UCell(visium, features = signatures, maxRank = 5000)
@@ -518,7 +523,7 @@ visium = UCell::SmoothKNN(visium, signature.names = paste0(names(signatures),'_U
 
 # Immune sig hot/cold areas
 for(s in paste0(names(signatures),'_UCell_kNN')){
-  visium = hotspot_analysis(visium, feature = s, sim = 1999, padj.thres = 0.05)
+  visium = hotspot_analysis(visium, feature = s, sim = 999, padj.thres = 0.05)
 }
 
 # Clean column names for hot/cold areas annotation
@@ -530,7 +535,7 @@ colnames(visium@meta.data) = gsub('_UCell_kNN' ,'', colnames(visium@meta.data))
 When hot and cold areas are identified for more than one variable within the same dataset, the Kandinsky `hotspot_overlap` function can be used to create a new annotation that reflects the **overlap** between hot and cold areas for **two independent variables**, specified using `feat.1` and `feat.2` parameters.
 
 ```{r hotspot-overlap,fig.dim=c(6,6)}
-KanPlot(visium, feature = 'M1_16_clust', palette_discrete = c('dodgerblue3','firebrick3','gray85'))
+KanPlot(visium, feature = 'M1_16_clust', palette_discrete = c('#1A6AA0','#A94349','#D9D9D9'))
 
 visium = hotspot_overlap(visium, feat.1 = 'CD74', feat.2 = 'M1_16')
 
@@ -539,7 +544,7 @@ KanPlot(visium, feature = 'CD74_M1_16_clust', palette_discrete = c('gray85','sky
 
 ```
 
-We can **test** the association between CD74 hot and cold areas and each TAM or T/NK related signature using a one-tailed Fisher’s exact test.\
+We can **test** the association between CD74 hot and cold areas and each TAM or T/NK related signature using a one-tailed Fisher’s Exact test.\
 Specifically, we assess the overlap between CD74 hot/cold areas and hot/cold areas for each signature, respectively:
 
 ```{r hot-cold-areas-enrich}
@@ -598,7 +603,7 @@ for(s in paste0(names(signatures),'_clust')){
     filter(Var2 == 1)
   
   plots_hot[[s]] = ggplot(hot_props,aes(x = Var1, y = prop)) + 
-    theme_classic() + geom_bar(stat = 'identity', fill = 'firebrick3', color = 'black') +
+    theme_classic() + geom_bar(stat = 'identity', fill = '#A94349', color = 'black') +
     scale_x_discrete(breaks = c('1','0'), limits = c('1','0'), labels = c('Hot','Rest')) +
     labs(x = 'CD74 area', y = paste0('Hot for ',gsub('_clust','',s),' (%)'), fill = paste0(gsub('_clust','',s),' area')) +
     scale_y_continuous(limits = c(0,max(hot_props$prop)+0.05)
@@ -633,7 +638,7 @@ for(s in paste0(names(signatures),'_clust')){
     filter(Var2 == 1)
   
   plots_cold[[s]] = ggplot(cold_props,aes(x = Var1, y = prop)) + 
-    theme_classic() + geom_bar(stat = 'identity', fill = 'dodgerblue3', color = 'black')+
+    theme_classic() + geom_bar(stat = 'identity', fill = '#1A6AA0', color = 'black')+
     scale_x_discrete(breaks = c('1','0')
                      , limits = c('1','0')
                      , labels = c('Cold','Rest')) +

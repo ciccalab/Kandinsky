@@ -80,7 +80,7 @@
 <span>  k <span class="op">=</span> <span class="fl">20</span>,</span>
 <span>  d.max <span class="op">=</span> <span class="fl">40</span>,</span>
 <span>  soi <span class="op">=</span> <span class="cn">F</span>,</span>
-<span>  hd.snap <span class="op">=</span> <span class="fl">10</span>,</span>
+<span>  layers <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  ids_other <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  xcoord_other <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  ycoord_other <span class="op">=</span> <span class="cn">NULL</span></span>
@@ -149,8 +149,8 @@ Must be one of the following:
 <dd><p>boolean, whether or not filter Delaunay network to keep sphere of influence (SOI) graph. Default is FALSE</p></dd>
 
 
-<dt id="arg-hd-snap">hd.snap<a class="anchor" aria-label="anchor" href="#arg-hd-snap"></a></dt>
-<dd><p>numeric, scaling factor used on minimal distance between Visium-HD bins to define neighbour relationships. Only Applied when `nb.method = Q`. Higher `hd.snap` values will give lower distance thresholds.</p></dd>
+<dt id="arg-layers">layers<a class="anchor" aria-label="anchor" href="#arg-layers"></a></dt>
+<dd><p>numeric, number of concentric contiguous layers to include in spot neighbourhood. Only Applied when `nb.method = Q`. Default is 1</p></dd>
 
 
 <dt id="arg-ids-other">ids_other<a class="anchor" aria-label="anchor" href="#arg-ids-other"></a></dt>

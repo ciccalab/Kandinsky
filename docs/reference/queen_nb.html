@@ -66,7 +66,7 @@
     </div>
 
     <div id="ref-usage">
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">queen_nb</span><span class="op">(</span><span class="va">poly</span>, snap <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">queen_nb</span><span class="op">(</span><span class="va">poly</span>, snap <span class="op">=</span> <span class="cn">NULL</span>, layers <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div id="arguments">
@@ -79,6 +79,10 @@
 
 <dt id="arg-snap">snap<a class="anchor" aria-label="anchor" href="#arg-snap"></a></dt>
 <dd><p>numeric, extra distance accepted between polygon borders for contiguity relation</p></dd>
+
+
+<dt id="arg-layers">layers<a class="anchor" aria-label="anchor" href="#arg-layers"></a></dt>
+<dd><p>numeric, number of concentric contiguous layers to include in spot neighbourhood. Only Applied when `nb.method = Q`. Default is 1</p></dd>
 
 </dl></div>
     <div id="value">

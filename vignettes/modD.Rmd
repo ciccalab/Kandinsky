@@ -1,5 +1,5 @@
 ---
-title: "Kandinsky cell/spot co-localization"
+title: "Kandinsky cell/spot co-localisation/dispersion"
 output:
   html_document:
     highlight: tango
@@ -49,7 +49,7 @@ font-size: 12pt;
 
 <hr />
 
-The following code replicates the analysis shown in the Kandinsky paper to study co-localization between different cell types found in a breast cancer sample profiled with **10X Genomics Xenium platform**.
+The following code replicates the analysis shown in the Kandinsky paper to study spatial co-localization/dispersion between different cell types found in a breast cancer sample profiled with **10X Genomics Xenium platform**.
 
 <br />
 
@@ -76,14 +76,14 @@ options(future.globals.maxSize = 8000 * 1024^2)
 To work with Xenium data using Kandinsky, we first need to set the **path to the folder** containing Xenium raw input data.
 
 ```{r set-path, echo=FALSE}
-path = '/hpcnfs/home/mariachiara.grieco/kandinsky_test/input/Xenium_data/'
-#path = '/SAN/colcc/ITH3/Pietro/Kandinsky/test_data/Xenium/Breast_5K/'
+#path = '/hpcnfs/home/mariachiara.grieco/kandinsky_test/input/Xenium_data/'
+path = '/SAN/colcc/ITH3/Pietro/Kandinsky/test_data/Xenium/Breast_5K/'
 
 ```
 
 ```{r, eval=F}
 # Import Xenium data
-path = 'Kandinsky/test_data/Xenium/Breast_5K/'
+#path = 'Kandinsky/test_data/Xenium/Breast_5K/'
 ```
 
 ```{r }
@@ -199,7 +199,6 @@ We can now annotate each cluster for its corresponding **cell type** by inspecti
 library(presto)
 res = FindAllMarkers(xen, logfc.thresold = 0.1, min.pct = 0.1, only.pos = T)
 res = res %>% filter(p_val_adj < 0.05, avg_log2FC > 0.5)
-
 ```
 
 ```{r cell-type-annotation}
@@ -229,27 +228,25 @@ xen$top_anno = unname(sapply(as.character(xen$final_clust),function(x){strsplit(
 
 We can now visualize our single cells annotated according to their cell type of origin. Specifically, we will use **three** different visualization strategies:
 
--   **markers dot plot**: the top 3 DE genes for each cell type will be displayed in a dot plot using the Seurat function `DotPlot()`;
+-   **markers dot plot**: the top 2 DE genes for each cell type will be displayed in a dot plot using the Seurat function `DotPlot()`;
 -   **Uniform Manifold Approximation and Projection (UMAP)**: cells will be visualized in a low-dimensional space (previously generated as part of the Seurat clustering pipeline with `RunUMAP()`) and coloured according to their cell type of origin;
 -   **spatial visualization**: Kandinsky function `KanPlot()` is used to map single cells into space according to their associated segmentation coordinates. Each cell will be coloured according to their cell type of origin.
 
 ```{r plot-clusters, fig.dim=c(13,9), message = F}
-de_filtered  = res %>% group_by(cluster) %>% 
-  arrange(desc(avg_log2FC)) %>%
+markers = FindAllMarkers(xen, logfc.thresold = 0.5, min.pct = 0.1, only.pos = T)
+markers =  markers  %>% 
+  group_by(cluster) %>% 
   filter(p_val_adj < 0.05, avg_log2FC >= 1) %>% 
-  filter(row_number() <= 3) %>% 
-  ungroup() %>% arrange(cluster) %>% 
-  as.data.frame()
+  slice_max(n = 2, order_by = avg_log2FC) %>%
+  pull(gene)
 
-genes = unique(de_filtered$gene)
-xen$final_clust = factor(xen$final_clust,levels = sort(unique(xen$final_clust)))
-Idents(xen) = 'final_clust'
+markers = unique(markers)
 
 library(ggplot2)
 library(viridis)
 
 # Cell type marker dot plot
-DotPlot(xen, features = genes, dot.min = 0.05) + scale_color_viridis(option = 'viridis') +
+DotPlot(xen, features = markers, dot.min = 0.05) + scale_color_viridis(option = 'viridis') +
   theme(axis.text.x = element_text(size = 4, angle = 90), legend.text = element_text(size = 3), legend.key.size = unit(1, 'cm'), legend.title = element_text(size = 5)) + labs(x = '', y = '')
 
 pal = c("ivory1", "#ff0062","#e6ad1e", "cyan","#cfcf1b", "#FFCC99", "gray90", "#94FFB5","#f0f29d", 
@@ -296,15 +293,15 @@ ggplot(tot_nb, aes(y = size)) + theme_classic()+
 
 <br />
 
-## 4) Co-localisation analysis
+## 4) Co-localisation/dispersion
 
 <hr />
 
-Kandinsky implements a **co-localisation analysis module** to test for co-localisation or spatial dispersion between any pair of cell types present in the analysed dataset.
+Kandinsky implements a **co-localisation/dispersion analysis module** to test for spatial co-localisation or dispersion between any pair of cell types present in the analysed dataset.
 
-Co-localisation analysis is performed by using the Kandinsky `jc_coloc()` function.
+Co-localisation/dispersion analysis is performed by using the Kandinsky `jc_coloc()` function.
 
-The cell type annotation name is specified through the `label` parameter.The function will internally performs a **join count test** to calculate a co-localisation z-coefficient for each cell type pairs, with positive and negative coefficients indicating a tendency of co-localisation or dispersion between cell types, respectively.
+The cell type annotation name is specified through the `label` parameter. The function will internally performs a **join count test** to calculate a co-localisation z-coefficient for each cell type pairs, with positive and negative coefficients indicating a tendency of co-localisation or dispersion between cell types, respectively.
 
 The main output of `jc_coloc()` is a heatmap plot displaying all co-localisation z-values computed by Kandinsky for any cell type combination. By setting the parameter `return.mat = TRUE`, the function will return a list object containing both the heatmap plot and a data frame reporting all the numeric co-localisation z-values computed by Kandinsky.
 
@@ -338,7 +335,7 @@ de_tumour$gene = rownames(de_tumour)
 de_tumour$comparison = '56_vs_12347'
 ```
 
-To interpret differential gene expression results, we will use the package [fgsea](https://github.com/alserglab/fgsea) to perform pre-ranked gene set enrichment analysis considering the Hallmark gene gene sets from the Molecular Signature DataBase (MSigDB).
+To interpret differential gene expression results, we will use the package [fgsea](https://github.com/alserglab/fgsea) to perform pre-ranked gene set enrichment analysis considering the Hallmark gene gene sets from the Molecular Signature DataBase [(MSigDB)](https://www.gsea-msigdb.org/gsea/msigdb).
 
 ```{r pathway-enrich}
 # Load list of Hallmark signatures

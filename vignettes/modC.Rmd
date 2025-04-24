@@ -120,11 +120,11 @@ cosmx = prepare_cosmx_seurat(path = path, dataset.id = 'Pancreas', pattern = 'Pa
 Now that the new `Seurat object` is ready, we use **Kandinsky** to identify **cell neighborhoods** based on cell-to-cell relationships using the `kandinsky_init()` function.\
 Since we are working with CosMx data, we set the parameter `tech = 'cosmx'` to let Kandinsky correctly interpret the CosMx data format.\
 
-For neighborhood identification, we choose the **centroid distance method** (`nb.method = 'C'`) and set the distance threshold to 40um (`d.max = 40`).
+For neighborhood identification, we choose the **membrane distance method** (`nb.method = 'M'`) and set the distance threshold to 0um (`d.max = 0`). In this way, we will define c-NBs based on the presence of physical contact between cells.
 
 ```{r prepare-kandinsky-data}
-# Initialize Kandinsky (neighbour method: centroid distance < 40um)
-cosmx = kandinsky_init(cosmx, tech = 'cosmx', nb.method = 'C', d.max = 40)
+# Initialize Kandinsky (neighbour method: membrane distance = 0um)
+cosmx = kandinsky_init(cosmx, tech = 'cosmx', nb.method = 'M', d.max = 0)
 ```
 
 <br />
@@ -157,9 +157,10 @@ cosmx$islet = ifelse(stringr::str_detect(cosmx$cell_types,'Alpha|Beta|Gamma|Delt
 We can now visualize a subset of our dataset (from FOV 51 to 59) using the Kandinsky function `KanPlot()`, with cells coloured according to their annotated cell type:
 
 ```{r plot-cell-types,fig.dim=c(13,9)}
+pancreas_pal = c("#AEDCED", "#CC6677", "#DDCC77", "#117733", "#7E7ECE", "#AA4499", "#44AA99", "#999933", "#882255","#661100", "#6699CC", "#888888")
 p1 = KanPlot(subset(cosmx,subset = fov <= 59)
              , feature = 'cell_types'
-             , theme = 'light', bg_img = F, palette_discrete = c12
+             , theme = 'dark', bg_img = F, palette_discrete = pancreas_pal
              , show_border = T, border.size = 0.1) + 
   labs(fill = 'Cell Type')
 p1
@@ -235,7 +236,7 @@ cosmx$anno_plot = ifelse(cosmx$cell_types %in% c("Acinar.1","Acinar.2"),cosmx$Ac
 
 p2 = KanPlot(subset(cosmx,subset = fov <= 59 & anno_plot %in% c('Islet','peri-islet','non peri-islet'))
              , feature = 'anno_plot'
-             , theme='light', bg_img = F, palette_discrete = c('gray40','#84C441','#7B1B38')
+             , theme='dark', bg_img = F, palette_discrete = c('#5F5FC4','#84C441','#7B1B38')
              , show_border = T, border.size = 0.1)
 p2
 ```
@@ -247,7 +248,7 @@ Any additional parameter that can be set within `FindMarkers()` can also be dire
 
 ```{r nnquery-de}
 # Differential expression analysis between peri-islet and non peri-islet acinar cells#
-de_c = nn_query(cosmx,query = '(`Beta cells` >=1 | `Alpha cells` >=1 | `Delta cells` >=1 | `Gamma cells` >=1 | `Epsilon cells` >=1)'
+de_m = nn_query(cosmx,query = '(`Beta cells` >=1 | `Alpha cells` >=1 | `Delta cells` >=1 | `Gamma cells` >=1 | `Epsilon cells` >=1)'
                 , anno_name = 'Peri_islet'
                 , diffexpr = T
                 , label = 'cell_types'
@@ -255,14 +256,14 @@ de_c = nn_query(cosmx,query = '(`Beta cells` >=1 | `Alpha cells` >=1 | `Delta ce
                 , logfc.threshold = log2(1.1))
 
 
-de_c$gene = rownames(de_c)
+de_m$gene = rownames(de_m)
 
 # Limit DE results due to contamination by setting a threshold on both the % of expressing cells in both acinar cell populations (pct.1/pct.2)
-de_c = de_c %>% filter(p_val_adj < 0.01,pct.1 >= 0.2, pct.2 > 0.05)
-de_c = de_c %>% arrange(desc(avg_log2FC))
-de_c$gene = factor(de_c$gene, levels = de_c$gene)
-de_c$FC = 2^(de_c$avg_log2FC)
-de_c$sign = ifelse(de_c$FC > 1,'Up','Down')
+de_m = de_m %>% filter(p_val_adj < 0.01,pct.1 >= 0.2, pct.2 > 0.05)
+de_m = de_m %>% arrange(desc(avg_log2FC))
+de_m$gene = factor(de_m$gene, levels = de_m$gene)
+de_m$FC = 2^(de_m$avg_log2FC)
+de_m$sign = ifelse(de_m$FC > 1,'Up','Down')
 ```
 
 <br />
@@ -271,50 +272,12 @@ de_c$sign = ifelse(de_c$FC > 1,'Up','Down')
 
 <hr />
 
-We can then **repeat** the same neighbourhood query and differential expression analysis procedure after changing our definition of cell neighbourhood. For instance, we can now define cell neighbourhood based on physical contact between cells, specified using **the membrane distance** (`nb.method='M'`) and setting a distance threshold of 0um (`d.max=0`).
+We can then **repeat** the same neighbourhood query and differential expression analysis procedure after changing our definition of cell neighbourhood. For instance, we can now define cell neighbourhood based on **K-nearest neighbour (KNN) method** (`nb.method='K'`) and set the number of neighbours to 10 (`k=10`).
 
 The change of neighbourhood definition can be made through `nnMat()`, although only the creation of the neighbourhood composition matrix will be affected.
 
 To **permanently** change neighbourhood definition of our `Seurat object` and associated **Kandinsky** data for all downstream analysis, use the `nb_update()` **Kandinsky** function.
 
-```{r membrane-distance-method,fig.dim=c(13,9)}
-## PHYSICAL CONTACT ##
-# Change neighbour approach to physical contact (i.e., membrane distance = 0), then repeat DE analysis
-cosmx = nnMat(cosmx, label = 'cell_types', method = 'M', d.max = 0, return.seurat = T)
-
-
-# Search for acinar cells with at least 1 neighbours belonging to an islet cell type (alpha/beta/delta/gamma/epsilon)
-cosmx = nn_query(cosmx
-                 , query ='(`Beta cells` >=1 | `Alpha cells` >=1 | `Delta cells` >=1 | `Gamma cells` >=1 | `Epsilon cells` >=1)  & 
-                 cell_types %in% c("Acinar.1","Acinar.2")'
-                 , anno_name = 'Peri_islet')
-
-cosmx$Acinar_Type = ifelse(cosmx$Peri_islet == 'Y','peri-islet','non peri-islet')
-cosmx$anno_plot = ifelse(cosmx$cell_types %in% c("Acinar.1","Acinar.2"), cosmx$Acinar_Type,
-                         ifelse(cosmx$Peri_islet == 'N' & cosmx$islet == 'Y','Islet','Other'))
-
-p3 = KanPlot(subset(cosmx, subset = fov <= 59 & anno_plot %in% c('Islet','peri-islet','non peri-islet'))
-             , feature = 'anno_plot'
-             , theme = 'light', bg_img = F, palette_discrete = c('gray40','#84C441','#7B1B38')
-             , show_border = T, border.size = 0.1)
-p3
-
-# Repeat DE
-de_m = nn_query(cosmx,query='(`Beta cells` >=1 | `Alpha cells` >=1 | `Delta cells` >=1 | `Gamma cells` >=1 | `Epsilon cells` >=1)'
-                , anno_name = 'Peri_islet'
-                , diffexpr = T, label = 'cell_types'
-                , which = c('Acinar.1','Acinar.2'), logfc.threshold = log2(1.1))
-
-
-de_m$gene = rownames(de_m)
-de_m = de_m %>% filter(p_val_adj < 0.01, pct.1 >= 0.2, pct.2 >= 0.05)
-de_m = de_m %>% arrange(desc(avg_log2FC))
-de_m$gene = factor(de_m$gene,levels = de_m$gene)
-de_m$FC = 2^(de_m$avg_log2FC)
-de_m$sign = ifelse(de_m$FC > 1,'Up','Down')
-```
-
-Finally, we can again modify the cell neighbourhood definition based on the **K-nearest neighbour (KNN) method** (`nb.method='K'`) and set the number of neighbours to 10 (`k=10`).
 
 ```{r knn-method,fig.dim=c(13,9)}
 ## K-NEAREST NEIGHBOUR ##
@@ -334,11 +297,11 @@ cosmx$anno_plot = ifelse(cosmx$cell_types %in% c("Acinar.1","Acinar.2"),cosmx$Ac
                          ifelse(cosmx$Peri_islet == 'N' & cosmx$islet == 'Y','Islet','Other'))
 
 
-p4 = KanPlot(subset(cosmx,subset = fov <= 59 & anno_plot %in% c('Islet','peri-islet','non peri-islet'))
+p3 = KanPlot(subset(cosmx,subset = fov <= 59 & anno_plot %in% c('Islet','peri-islet','non peri-islet'))
              , feature = 'anno_plot'
              , theme = 'light', bg_img = F, palette_discrete = c('gray40','#84C441','#7B1B38')
              , show_border = T, border.size = 0.1)
-p4
+p3
 
 # Repeat DE
 de_k = nn_query(cosmx
@@ -372,40 +335,34 @@ We will plot all significant differentially expressed (DE) genes in a separate b
 
 ```{r de-barplots,fig.dim=c(13,9)}
 # DE genes barplot
-p5 = ggplot(de_c, aes(y = avg_log2FC, x = gene, fill = sign))+
-  theme_classic()+
-  geom_bar(stat = 'identity')+
-  scale_y_continuous(breaks = c(min(de_c$avg_log2FC), max(de_c$avg_log2FC)),
-                     label = round(2^(c(min(de_c$avg_log2FC), max(de_c$avg_log2FC))),2))+
-  xlab('Gene') + ylab('FC') + labs(fill = 'DE type')+
-  coord_flip()+
-  scale_fill_manual(values = c('Up' = '#7B1B38','Down' = '#84C441'))+
-  theme(axis.text = element_text(color = 'black'))
 
-p6 = ggplot(de_m, aes(y = avg_log2FC, x = gene, fill = sign))+
+p4 = ggplot(de_m, aes(y = avg_log2FC, x = gene, fill = sign))+
   theme_classic() +
   geom_bar(stat = 'identity')+
-  scale_y_continuous(breaks = c(min(de_m$avg_log2FC), max(de_m$avg_log2FC)),
-                     label = round(2^(c(min(de_m$avg_log2FC), max(de_m$avg_log2FC))), 2))+
+  scale_y_continuous(breaks = c(min(de_m$avg_log2FC),log2(1.1),log2(0.9), max(de_m$avg_log2FC)),
+                     label = round(2^(c(min(de_m$avg_log2FC),log2(1.1),log2(0.9),max(de_m$avg_log2FC))), 2))+
+  geom_hline(yintercept = log2(1.1),linetype='dashed')+
+  geom_hline(yintercept = log2(0.9),linetype='dashed')+
   xlab('Gene') + ylab('FC') + labs(fill = 'DE type')+
   coord_flip() +
   scale_fill_manual(values = c('Up' = '#7B1B38', 'Down' = '#84C441'))+
   theme(axis.text = element_text(color = 'black'))
 
-p7 = ggplot(de_k, aes(y = avg_log2FC, x = gene, fill = sign))+
+p5 = ggplot(de_k, aes(y = avg_log2FC, x = gene, fill = sign))+
   theme_classic() +
   geom_bar(stat = 'identity')+
-  scale_y_continuous(breaks = c(min(de_k$avg_log2FC), max(de_k$avg_log2FC)),
-                     label = round(2^(c(min(de_k$avg_log2FC), max(de_k$avg_log2FC))), 2)) +
+  scale_y_continuous(breaks = c(min(de_k$avg_log2FC),log2(1.1),log2(0.9), max(de_k$avg_log2FC)),
+                     label = round(2^(c(min(de_k$avg_log2FC),log2(1.1),log2(0.9),max(de_k$avg_log2FC))), 2))+
+  geom_hline(yintercept = log2(1.1),linetype='dashed')+
+  geom_hline(yintercept = log2(0.9),linetype='dashed')+
   xlab('Gene') + ylab('FC') + labs(fill = 'DE type')+
   coord_flip() +
   scale_fill_manual(values = c('Up' = '#7B1B38', 'Down' = '#84C441')) +
   theme(axis.text = element_text(color = 'black'))
 
 
-(p5 + ggtitle('method: centroid distance < 40um'))+
-  (p6 + ggtitle('method: physical contact'))+
-  (p7 + ggtitle('method: KNN (k=10)'))+
+  (p4 + ggtitle('method: physical contact'))+
+  (p5 + ggtitle('method: KNN (k=10)'))+
   plot_layout(guides = 'collect', axis_titles = 'collect', ncol = 3)
 
 ```
@@ -513,6 +470,10 @@ We can now visualize a subset of our samples using the Kandinsky `KanPlot()` fun
 
 ```{r plot-cell-types IMC, fig.dim=c(13,9)}
 samples = c('P1-R1','P4-R1','P6-R3','P8-R2')
+
+pal = c('#ADE2D0','#FF6F00','#84D7E1','#C71000','#FF6348','#008EA0','#FF95A8','#3D3B25','#8A4198','#5A9599')
+pal2 = c('#4BB749','#D42B91','#E2A725','#00807E','#8DC1E9','#ECE949','#44AA99','#999933','#864E9F','#FAC0B2')
+
 p1 = lapply(samples, function(x){
   KanPlot(seurat[,seurat$ROIs_Short == x]
           , feature = 'Neighborhoods'
@@ -606,21 +567,11 @@ The **adjusted Rand index** (ARI) of 0.41 obtained by comparing the two cluster 
 
 <hr />
 
-Using the `ResidualPlot()` function implemented in Kandinsky, we can visualize the **overlap between different cell annotations**, such as cell types and Kandinsky clusters.
+We can visualize the **overlap between different cell annotations**, such as cell types and Kandinsky c-NB groups, via one-tailed Fisher's exact test.
 
-Internally, the function computes a **Chi-squared test** between annotation levels, producing a heatmap colored according to the standardized residuals estimated as part of the Chi-squared test (representing Observed/Expected ratios between each pair of annotation levels).
+Specifically, we will test the enrichment within each c-NB group of different PDAC niches and cell types.
 
-When `pval` is set to `TRUE`, a permutation test will be performed by randomly reshuffling annotation labels for all cells (number of permutations specified through the `perm` parameter), and producing an FDR for all Chi-squared residuals.
-
-By default, the permutation test will assess the presence of significant enrichment or overlap (*i.e*, residuals \> 0) between annotation levels via a one-tailed test.
-
-However, user can also test the statistical significance of negative residuals associated with depletion, or both positive and negative residuals together via a two-tailed test.
-
-This can be done by changing the `alternative` parameter in `ResidualPlot()` to `greater` (default), `less`, or `two.sided`. The `padj.thresh` parameter is used to select statistically significant residuals.
-
-The `PropPlot()` function creates a stacked barplot showing the proportion of each class of the annotation layer `var.2` within each class of the annotation layer `var.1`.
-
-`PropPlot()` and `ResidualPlot()` can be called simultaneously for the same `var.1` and `var.2` annotations using the wrapper function `EnrichPlots()`.
+The `PropPlot()` function creates a stacked barplot showing the proportion of each class of the annotation layer `var.2` within each class of the annotation layer `var.1`. This can be used to help the interpretation of Fisher's test enrichment results.
 
 ```{r plot-cluster-enrichment IMC,fig.dim=c(13,9)}
 # Check PDAC niches and cell type enrichment within Kandinsky clusters
@@ -635,13 +586,6 @@ seurat$Cell_Types = factor(seurat$Cell_Types
 )
 
 
-ResidualPlot(seurat
-             , var.1 = 'nbClust.K_20'
-             , var.2 = 'Cell_Types'
-             , pval = TRUE
-             , perm = 2000
-             , padj.thresh = 0.01)
-
 
 seurat$Neighborhoods = factor(seurat$Neighborhoods
                               , levels = c("Endocrine", "Granulocyte Enriched", "Proliferating Tumor", "Stromal Enriched-2"
@@ -653,15 +597,78 @@ prop = PropPlot(seurat
                 , var.2 = 'Neighborhoods'
                 , cols = setNames(object = pal2, nm = sort(unique(as.character(seurat$Neighborhoods)))))
 
-resid = ResidualPlot(seurat
-                     , var.1 = 'nbClust.K_20'
-                     , var.2 = 'Neighborhoods'
-                     , pval = TRUE
-                     , perm = 2000
-                     , padj.thresh = 0.01) +
-  scale_y_discrete(limits = rev)
 
-prop + resid + plot_layout(guides = 'collect', ncol = 2, axis_titles = 'collect')
+
+clusts =model.matrix(data = seurat@meta.data, ~ 0 + nbClust.K_20) %>% as.data.frame()
+colnames(clusts) = gsub('nbClust.K_20','',colnames(clusts))
+niches = model.matrix(data = seurat@meta.data, ~ 0 + Neighborhoods) %>% as.data.frame()
+colnames(niches) = gsub('Neighborhoods','',colnames(niches))
+
+ctypes = model.matrix(data = seurat@meta.data, ~ 0 + Cell_Types) %>% as.data.frame()
+colnames(ctypes) = gsub('Cell_Types','',colnames(ctypes))
+
+##Test overlap between PDAC spatial niches and c-NB groups
+overlaps = list()
+for(c in colnames(clusts)){
+  overlap_c = list()
+  for(n in colnames(niches)){
+    prop = prop.table(table(clusts[[c]],niches[[n]]),1) %>% as.data.frame() %>% filter(Var1==1,Var2==1)
+    prop = prop$Freq
+    pval = fisher.test(table(clusts[[c]],niches[[n]]),alternative='greater')$p.value
+    res = data.frame(niches=n,cluster=c,overlap=prop,pval=pval)
+    overlap_c[[n]]=res
+  }
+  overlap_c = purrr::reduce(overlap_c,rbind)
+  overlap_c$padj = p.adjust(overlap_c$pval,method='BH')
+  overlaps[[c]] = overlap_c
+}
+overlaps = purrr::reduce(overlaps,rbind)
+overlaps$label = ifelse(overlaps$padj < 0.01,"*","")
+
+overlaps$niches = factor(overlaps$niches,levels = levels(seurat$Neighborhoods))
+overlaps$cluster = factor(overlaps$cluster,levels=levels(seurat$nbClust.K_20))
+
+
+ggplot(overlaps, aes(x = .data[["cluster"]], y = .data[["niches"]], 
+                     fill = .data[["overlap"]])) + theme_classic() + geom_tile(color = "black") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), 
+        axis.text = element_text(color = "black"), axis.line = element_blank(), 
+        axis.ticks = element_blank()) + labs(fill = "Proportion") + 
+  labs(x = 'c-NB groups', y = 'PDAC Niche') + coord_fixed(ratio = 1)+scale_fill_gradient2(low = "white", high = "red", 
+                                                                                           midpoint =0, limits = c(0,round(max(overlaps$overlap),2)), breaks=c(0,round(max(overlaps$overlap),2)), oob = scales::squish)+
+  scale_y_discrete(limits=rev)+
+  geom_text(stat = "identity", aes(label = .data[["label"]]),size = 4)
+
+##Test overlap between PDAC cell types and c-NB groups
+overlaps2 = list()
+for(c in colnames(clusts)){
+  overlap_c = list()
+  for(ct in colnames(ctypes)){
+    prop = prop.table(table(clusts[[c]],ctypes[[ct]]),1) %>% as.data.frame() %>% filter(Var1==1,Var2==1)
+    prop = prop$Freq
+    pval = fisher.test(table(clusts[[c]],ctypes[[ct]]),alternative='greater')$p.value
+    res = data.frame(cell_type=ct,cluster=c,overlap=prop,pval=pval)
+    overlap_c[[ct]]=res
+  }
+  overlap_c = purrr::reduce(overlap_c,rbind)
+  overlap_c$padj = p.adjust(overlap_c$pval,method='BH')
+  overlaps2[[c]] = overlap_c
+}
+overlaps2 = purrr::reduce(overlaps2,rbind)
+overlaps2$label = ifelse(overlaps2$padj < 0.01,"*","")
+
+overlaps2$cell_type = factor(overlaps2$cell_type,levels = levels(seurat$Cell_Types))
+overlaps2$cluster = factor(overlaps2$cluster,levels=levels(seurat$nbClust.K_20))
+
+
+ggplot(overlaps2, aes(x = .data[["cluster"]], y = .data[["cell_type"]], 
+                     fill = .data[["overlap"]])) + theme_classic() + geom_tile(color = "black") + 
+  theme(#axis.text.x = element_text( hjust = 1), 
+        axis.text = element_text(color = "black"), axis.line = element_blank(), 
+        axis.ticks = element_blank()) + labs(fill = "Proportion") + 
+  labs(x = 'c-NB groups', y = 'Cell Type') + coord_fixed(ratio = 1)+scale_fill_gradient2(low = "white", high = "red", 
+                                                                                           midpoint =0, limits = c(0,round(max(overlaps2$overlap),2)), breaks = c(0,round(max(overlaps2$overlap),2)),oob = scales::squish)+
+  geom_text(stat = "identity", aes(label = .data[["label"]]),size = 4)
 
 ```
 
