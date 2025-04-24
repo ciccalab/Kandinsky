@@ -815,9 +815,9 @@ prepare_slideseq_seurat = function(path = NULL, dataset.id=NULL,pattern=NULL){
 #' @name prepare_g4x_seurat
 #'
 #' @description
-#' Initial formatting of Singular Genomics g4x data to work with Seurat and Kandinsky
+#' Initial formatting of Singular Genomics G4X data to work with Seurat and Kandinsky
 #' @details
-#' This function will use 10X Xenium raw input data to build a new Seurat object. All Xenium input files must be stored in the same folder that will be specified to call the function
+#' This function will use Singular Genomics G4X raw input data to build a new Seurat object. All G4X input files must be stored in the same folder that will be specified to call the function
 #' @param path character string specifying the path to the G4X input files directory
 #' @param dataset.id character string that will be used to name the output Seurat object identity
 #' @param pattern character string that will be used as a key to identify G4X input file names in case when input files from multiple G4X samples/slides are stored in the same directory

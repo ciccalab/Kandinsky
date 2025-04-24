@@ -27,10 +27,10 @@ prepare_g4x_seurat(
 a Seurat object containing G4X count matrix, metadata, and additional files/file paths to be used for downstream analysis with Kandinsky functions
 }
 \description{
-Initial formatting of Singular Genomics g4x data to work with Seurat and Kandinsky
+Initial formatting of Singular Genomics G4X data to work with Seurat and Kandinsky
 }
 \details{
-This function will use 10X Xenium raw input data to build a new Seurat object. All Xenium input files must be stored in the same folder that will be specified to call the function
+This function will use Singular Genomics G4X raw input data to build a new Seurat object. All G4X input files must be stored in the same folder that will be specified to call the function
 }
 \seealso{
 Other prepare_data: 
