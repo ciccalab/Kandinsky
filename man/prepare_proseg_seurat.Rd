@@ -35,7 +35,9 @@ This function will use proseg raw input data (generated from either CosMx, Xeniu
 \seealso{
 Other prepare_data: 
 \code{\link{prepare_cosmx_seurat}()},
+\code{\link{prepare_g4x_seurat}()},
 \code{\link{prepare_merscope_seurat}()},
+\code{\link{prepare_slideseq_seurat}()},
 \code{\link{prepare_visiumHD_seurat}()},
 \code{\link{prepare_visium_seurat}()},
 \code{\link{prepare_xenium_seurat}()}

@@ -533,11 +533,13 @@ as.kandinsky = function(list){
 #' Must be one of the following:
 #' 'Q': queen contiguity method,check for contact (not overlap) between any edge or side od two polygons (refers to the queen movement rule in chess). Currently only applicable for Visium/Visium-HD data
 #' 'C': centroid-based method, use maximum centroid distance threshold to identify spot/cell neighbours
+#' 'D': Delaunay triangulation method
 #' 'K': KNN method, define k closest neighbours to each spot/cell
 #' 'M': membrane-based method, check for the occurrence of a physical contact/intersection within a distance threshold between cell boundaries. Not applicable in the case of Visium spots.
 #' @param k numeric, number of nearest neighbours to be set when `nb.method = K`
 #' @param d.max numeric, maximum centroid distance threshold to be set when `nb.method = C | M`
-#' @param hd.snap numeric, scaling factor used on minimal distance between Visium-HD bins to define neighbour relationships. Only Applied when `nb.method = Q`. Higher `hd.snap` values will give lower distance thresholds.
+#' @param soi boolean, whether or not filter Delaunay network to keep sphere of influence (SOI) graph. Default is FALSE
+#' @param layers numeric, number of concentric contiguous layers to include in spot neighbourhood. Only Applied when `nb.method = Q`. Default is 1
 #' @param ids_other character string specifying variable name to be used as cell identifiers when argument tech is set to "other"
 #' @param xcoord_other character string specifying variable name to be used as x coordinates when argument tech is set to "other"
 #' @param ycoord_other character string specifying variable name to be used as y coordinates when argument tech is set to "other"
@@ -549,16 +551,17 @@ kandinsky_init = function(seurat=NULL,tech='visium',
                           tx_path=NULL,
                           fov_path = NULL,
                           poly_path = NULL,
-                          nb.method = c('Q','C','K','M'),
+                          nb.method = c('Q','C','D','K','M'),
                           k=20,d.max=40,
-                          hd.snap=10,
+                          soi=F,
+                          layers = 1,
                           ids_other = NULL,
                           xcoord_other=NULL,
                           ycoord_other=NULL){
   if(!inherits(seurat,'Seurat')){
     stop('data must be a Seurat object')
   }
-  tech = intersect(tech,c('visium','visium_hd','cosmx','xenium','merscope','other'))
+  tech = intersect(tech,c('visium','visium_hd','cosmx','xenium','merscope','slideseq','g4x','other'))
   if(length(tech) ==0){
     stop('You must specify a technology compatible with Kandinsky: visium/visium_hd/cosmx/xenium/merscope/other')
   }
@@ -566,17 +569,25 @@ kandinsky_init = function(seurat=NULL,tech='visium',
   kandinsky$platform = tech
   if(!is.null(img)){
     message('Building Kandinsky slot "img"...')
-    kandinsky$img = visium2rast(seurat,img_path = img,rm_old_img = F,return.seurat=F,max_dim=img_maxdim)
+    if(tech %in% c('visium','visium_hd')){
+      kandinsky$img = visium2rast(seurat,img_path = img,rm_old_img = F,return.seurat=F,max_dim=img_maxdim)
+    }else if(tech == 'g4x'){
+      kandinsky$img = load_g4x_img(seurat,img_path = img,rm_old_img = F,return.seurat=F,max_dim=img_maxdim)
+    }
   }else if(is.null(img) & !is.null(seurat@tools$img_path)){
     message('Building Kandinsky slot "img"...')
+    if(tech %in% c('visium','visium_hd')){
     kandinsky$img = visium2rast(seurat,img_path = seurat@tools$img_path,rm_old_img = F,return.seurat=F,max_dim=img_maxdim)
+    }else if(tech == 'g4x'){
+      kandinsky$img = load_g4x_img(seurat,img_path = seurat@tools$img_path,rm_old_img = F,return.seurat=F,max_dim=img_maxdim)
+    }
   }
   message('Building Kandinsky slot "sf"...')
   if(tech == 'visium_hd'){
     kandinsky$sf = visium2sf(seurat,return.seurat=F,is.hd=T,res=res,binsize=binsize,img=kandinsky$img)
   }else if(tech == 'visium'){
     kandinsky$sf = visium2sf(seurat,return.seurat=F,is.hd=F,res=res,img=kandinsky$img)
-  }else if(tech %in% c('cosmx','xenium','merscope')){
+  }else if(tech %in% c('cosmx','xenium','merscope','slideseq','g4x')){
     if(is.null(seurat@tools$poly)){
       kandinsky$sf = smi2sf(seurat = seurat,poly_file = poly_path,id='cell_ID',return.seurat = F)
     }else{
@@ -599,22 +610,24 @@ kandinsky_init = function(seurat=NULL,tech='visium',
       diameter = (mindist/100)*65
       kandinsky$sf = sf::st_buffer(kandinsky$sf,dist=diameter/2)
       if(nb.method=='Q'){
-        ##Add snap term for contiguity check. The real spot/spot distance should be ~35um, but we can set the snap term to 40um
-        ## In this way we account for any spot misalignment (i.e., spot-spot distance might be slightly higher than 35)
-        snap = (mindist/100)*40
+        ##Add snap term for contiguity check.
+        ##If we consider each spot as one vertex of an equilateral triangle,
+        ##given the avg. min. distance between two spots, we can set the snap term to the triangle height
+        snap = (mindist*sqrt(3))/2
       }
     }else{
       kandinsky$sf = sf::st_buffer(kandinsky$sf,dist=mindist/2,endCapStyle = 'SQUARE')
       if(nb.method=='Q'){
-        ##Add snap term for contiguity check. There shouldn't be almost any empty space between adjacent Visium-HD bins.
-        ##Therefore, we can set a very small snap term (= 1/10 of minimal bin distance)
-        snap = (mindist/hd.snap)
+        ##Add snap term for contiguity check.
+        ##There shouldn't be almost any empty space between adjacent Visium-HD bins.
+        ##We can set the snap term equal to ~half of the diagonal of each squared spot
+        snap = (mindist*0.51*sqrt(2))
       }
     }
   }
 
-  if(tech %in% c('visium','visium_hd') & !(nb.method %in% c('Q','C','K'))){
-    stop('For Visium/Visium-HD data, only the following neighbour methods can be selected: Q(Queen), C(centroid distance), K(K-nearest neighbour)')
+  if(tech %in% c('visium','visium_hd') & !(nb.method %in% c('Q','C','K','D'))){
+    stop('For Visium/Visium-HD data, only the following neighbour methods can be selected: Q(Queen), C(centroid distance), K(K-nearest neighbour),D(Delaunay triangulation)')
   }
 
   if(length(nb.method) > 1){
@@ -635,29 +648,31 @@ kandinsky_init = function(seurat=NULL,tech='visium',
   }else if(nb.method=='C'){
     kandinsky$nb = centroid_nb(kandinsky$sf,d.max=d.max)
     kandinsky$nb.type = paste0('C_',d.max)
+  }else if(nb.method=='D'){
+    kandinsky$nb = tri_nb(kandinsky$sf,soi=soi)
+    kandinsky$nb.type = paste0('D_',paste0('soi',soi))
   }else if(nb.method == 'M'){
     kandinsky$nb = membrane_nb(kandinsky$sf,d.max=d.max)
     kandinsky$nb.type = paste0('M_',d.max)
   }else if(nb.method == 'Q'){
-    kandinsky$nb = queen_nb(kandinsky$sf,snap=snap)
+    kandinsky$nb = queen_nb(kandinsky$sf,layers=1,snap=snap)
     kandinsky$nb.type = 'Q'
   }else{
-    stop('nb.method parameter must be either "Q", "C", "K", or "M"')
+    stop('nb.method parameter must be either "Q", "C", "D", "K", or "M"')
   }
+  message('Building Kandinsky slot "tx"...')
   if(is.null(seurat@tools$tx)){
-    message('Building Kandinsky slot "tx"...')
     if(is.null(tx_path)){
       kandinsky$tx = NULL
     }else{
       kandinsky$tx = normalizePath(tx_path)
     }
   }else{
-    message('Building Kandinsky slot "tx"...')
     kandinsky$tx = seurat@tools$tx
     seurat@tools$tx = NULL
   }
+  message('Building Kandinsky slot "fov_mask"...')
   if(is.null(seurat@tools$fov)){
-    message('Building Kandinsky slot "fov_mask"...')
     if(is.null(fov_path)){
       kandinsky$fov_mask = NULL
     }else{
@@ -665,7 +680,6 @@ kandinsky_init = function(seurat=NULL,tech='visium',
       kandinsky$fov_mask = read_fovfile(fov_path,buffer=255,fov_ids = unique(seurat@meta.data[[fov_info]]))
     }
   }else{
-    message('Building Kandinsky slot "fov_mask"...')
     kandinsky$fov_mask = seurat@tools$fov
     seurat@tools$fov = NULL
   }

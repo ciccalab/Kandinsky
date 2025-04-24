@@ -8,6 +8,7 @@ nb_update(
   seurat = NULL,
   nb.method = c("K", "C", "D", "M", "Q"),
   snap = NULL,
+  layers = 1,
   d.max = 20,
   k = 10,
   soi = F
@@ -25,6 +26,8 @@ Must be one of the following:
 'M': membrane-based method, check for the occurrence of a physical contact/intersection within a distance threshold between cell boundaries. Not applicable in the case of Visium spots.}
 
 \item{snap}{numeric, maximum accepted distance between Visium spots or Visium-HD bins to define contiguity relationships. Only Applied when `nb.method = Q`.}
+
+\item{layers}{numeric, number of concentric contiguous layers to include in spot neighbourhood. Only Applied when `nb.method = Q`. Default is 1}
 
 \item{d.max}{numeric, maximum distance accepted between polygon centroids to define neighbour relation}
 

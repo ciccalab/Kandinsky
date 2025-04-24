@@ -7,13 +7,13 @@
 hotspot_overlap(seurat = NULL, feat.1 = NULL, feat.2 = NULL, ...)
 }
 \arguments{
+\item{seurat}{a Seurat object containing Kandinsky data (`KanData()`)}
+
 \item{feat.1}{character string specifying the name of the first feature to consider}
 
 \item{feat.2}{character string specifying the name of the second feature to consider}
 
 \item{...}{arguments passed to hotspot_analysis function}
-
-\item{data}{a Seurat object containing Kandinsky data (`KanData()`)}
 }
 \value{
 updated Seurat object with a new annotation column reporting the type of overlap between hot/cold spot annotations:

@@ -839,7 +839,7 @@ visium2sf = function(seurat = NULL,is.hd=F,return.seurat=T,binsize=16,res=NULL,i
 #' @returns Seurat object with the new raster image stored in the `misc` slot or the raster image alone, depending on the `return.seurat` parameter
 #' @importFrom terra RGB RGB<-
 #' @export
-visium2rast = function(seurat = NULL,img_path = NULL,rm_old_img = T,return.seurat=T,max_dim = 2000){
+visium2rast = function(seurat = NULL,img_path = NULL,rm_old_img = F,return.seurat=T,max_dim = 2000){
   suppressWarnings({
     img = terra::rast(img_path)
     scalef = round(max(dim(img))/max_dim,1)
@@ -859,10 +859,10 @@ visium2rast = function(seurat = NULL,img_path = NULL,rm_old_img = T,return.seura
     }
     if(rm_old_img == T){
       message('Removing Seurat image slot data')
-      vis@images[[1]] = NULL
+      seurat@images[[1]] = NULL
     }
-    message("New SpatRaster data stored as tool 'spatrast' data (i.e., vis@tools$spatrast)")
-    return(vis)
+    message("New SpatRaster data stored as tool 'img' data (i.e., seurat@tools$img)")
+    return(seurat)
   }else{
     return(img)
   }
@@ -1030,3 +1030,57 @@ AlignXeniumCoords = function(img=NULL,poly=NULL){
 }
 
 
+
+
+#################################
+###########G4X UTILS###########
+#################################
+#' @title Create spatraster image from G4X jp2 image file
+#' @name load_g4x_img
+#' @description
+#' Create a SpatRaster object (package `terra`) using Visium image file
+#' @details
+#' This function will use G4X H&E image file to create a SpatRaster image for downstream analysis and visualization.
+#'
+#' @param seurat a Seurat object containing G4X data
+#' @param img_path character string indicating the path of the H&E image to be used. If set to `NULL`, the function will look for any image path 'img' stored in tools slot
+#' @param rm_old_img boolean, whether or not removing any Image object already loaded in the Seurat object (`Images()`)
+#' @param return.seurat boolean, whether returning the input Seurat file with the raster object stored in the `tools` slot (`TRUE`) or the raster object alone (`FALSE`). Default value is `TRUE`
+#' @param max_dim numeric value indicating the ideal maximum pixel dimension accepted for Visium H&E image. If image size is bigger than this value, a scale factor will be applied to lower image pixel resolution/size up to the defined maximum value
+#' @returns Seurat object with the new raster image stored in the `misc` slot or the raster image alone, depending on the `return.seurat` parameter
+#' @importFrom terra RGB RGB<-
+#' @export
+load_g4x_img = function(seurat = NULL,img_path = NULL,rm_old_img = F,return.seurat=T,max_dim = 2000){
+  if(is.null(img_path)){
+    check = names(seurat@tools)
+    if(any(check == 'img_path')){
+      img_path = seurat@tools$img_path
+    }
+  }
+  suppressWarnings({
+    img = terra::rast(img_path)
+    scalef = round(max(dim(img))/max_dim,1)
+    if(scalef >= 2){
+      img = terra::aggregate(img,fact=scalef,fun='mean')
+    }
+    RGB(img) = c(1,2,3)
+  })
+  if(utils::packageVersion('terra') <= '1.7.78'){
+    img = terra::flip(img)
+  }
+  if(return.seurat==T){
+    if(!is.null(KanData(seurat))){
+      KanData(seurat,'img') = img
+    }else{
+      seurat@tools$img = img
+    }
+    if(rm_old_img == T){
+      message('Removing Seurat image slot data')
+      seurat@images[[1]] = NULL
+    }
+    message("New SpatRaster data stored as tool 'img' data (i.e., seurat@tools$img)")
+    return(seurat)
+  }else{
+    return(img)
+  }
+}

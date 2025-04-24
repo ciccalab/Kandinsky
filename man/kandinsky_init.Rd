@@ -18,7 +18,7 @@ kandinsky_init(
   k = 20,
   d.max = 40,
   soi = F,
-  hd.snap = 10,
+  layers = 1,
   ids_other = NULL,
   xcoord_other = NULL,
   ycoord_other = NULL
@@ -57,7 +57,7 @@ Must be one of the following:
 
 \item{soi}{boolean, whether or not filter Delaunay network to keep sphere of influence (SOI) graph. Default is FALSE}
 
-\item{hd.snap}{numeric, scaling factor used on minimal distance between Visium-HD bins to define neighbour relationships. Only Applied when `nb.method = Q`. Higher `hd.snap` values will give lower distance thresholds.}
+\item{layers}{numeric, number of concentric contiguous layers to include in spot neighbourhood. Only Applied when `nb.method = Q`. Default is 1}
 
 \item{ids_other}{character string specifying variable name to be used as cell identifiers when argument tech is set to "other"}
 

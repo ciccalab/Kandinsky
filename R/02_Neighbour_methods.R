@@ -10,16 +10,17 @@
 #'
 #' @param poly a sf data frame with polygon geometry
 #' @param snap numeric, extra distance accepted between polygon borders for contiguity relation
+#' @param layers numeric, number of concentric contiguous layers to include in spot neighbourhood. Only Applied when `nb.method = Q`. Default is 1
 #' @returns weighted neighbour matrix in a listw object from spdep package
 #' @export
 #' @family nb_funcs
-queen_nb = function(poly,snap=NULL){
+queen_nb = function(poly,snap=NULL,layers=1){
   message('Queen neighbour method is designed to work with Visium / Visium HD data only')
   if(levels(droplevels(sf::st_geometry_type(poly))) != 'POLYGON'){
     stop('Input geometries should be polygons')
     #poly = sf::st_buffer(poly,dist=buffer)
   }
-  nb = spdep::poly2nb(poly,snap=snap,row.names = poly[['spot_ID']])
+  nb = spdep::poly2nb(poly,snap=snap*layers,row.names = poly[['spot_ID']])
   nb = spdep::nb2listw(nb,style = 'B',zero.policy=T)
   return(nb)
 }
@@ -101,6 +102,39 @@ knn_nb = function(poly,k=20){
 }
 
 
+#' @title Delaunay triangulation neighbour identification
+#' @name tri_nb
+#' @description
+#' Define neighbour relationships according to Delaunay triangulation network
+#'
+#' @details
+#' based on tri.mesh function from tripack package.
+#'
+#' @param poly a sf data frame with polygon geometry
+#' @param soi boolean, whether or not filter Delaunay network to keep sphere of influence (SOI) graph. Default is FALSE
+#' @returns weighted neighbour matrix in a listw object from spdep package
+#' @export
+#' @family nb_funcs
+tri_nb = function(poly,soi=F){
+  #Define neighbours according to sphere of influence graph
+  if(levels(droplevels(sf::st_geometry_type(poly))) == 'POLYGON'){
+    suppressWarnings({poly = sf::st_centroid(poly)})
+  }
+  nb = tripack::tri.mesh(sf::st_coordinates(poly)[,1],sf::st_coordinates(poly)[,2])
+  nb = tripack::neighbours(nb)
+  attr(nb,'class') = c('sgbp','list')
+  class(nb) = "nb"
+  attr(nb,'region.id') = rownames(poly)
+  if(soi==T){
+  nb = spdep::soi.graph(nb,sf::st_coordinates(poly))
+  nb = spdep::graph2nb(nb)
+  }
+  nb = spdep::nb2listw(nb,style='B',zero.policy=T)
+  return(nb)
+}
+
+
+
 #' @title expand neighbour links to N higher orders
 #' @name nb_expand
 #' @description
@@ -133,36 +167,42 @@ nb_expand = function(seurat,maxorder=2,cumul=T){
 #' Must be one of the following:
 #' 'Q': queen contiguity method,check for contact (not overlap) between any edge or side od two polygons (refers to the queen movement rule in chess). Currently only applicable for Visium/Visium-HD data
 #' 'C': centroid-based method, use maximum centroid distance threshold to identify spot/cell neighbours
+#' 'D': Delaunay triangulation
 #' 'K': KNN method, define k closest neighbours to each spot/cell
 #' 'M': membrane-based method, check for the occurrence of a physical contact/intersection within a distance threshold between cell boundaries. Not applicable in the case of Visium spots.
 #' @param snap numeric, maximum accepted distance between Visium spots or Visium-HD bins to define contiguity relationships. Only Applied when `nb.method = Q`.
+#' @param layers numeric, number of concentric contiguous layers to include in spot neighbourhood. Only Applied when `nb.method = Q`. Default is 1
 #' @param d.max numeric, maximum distance accepted between polygon centroids to define neighbour relation
 #' @param k numeric, number of nearest neighbour to select with knn algorithm
+#' @param soi boolean, whether or not filter Delaunay network to keep sphere of influence (SOI) graph. Default is FALSE
 #' @returns seurat object with updated 'nb' neighbours in Kandinsky data
 #' @export
 #' @family nb_funcs
-nb_update = function(seurat=NULL,nb.method=c('K','C','M','Q'),snap=NULL,d.max=20,k=10){
+nb_update = function(seurat=NULL,nb.method=c('K','C','D','M','Q'),snap=NULL,layers=1,d.max=20,k=10,soi=F){
   if(nb.method == 'K'){
     KanData(seurat,'nb') = knn_nb(KanData(seurat,'sf'),k = k)
     KanData(seurat,'nb.type') = paste0('K_',k)
   }else if(nb.method=='C'){
     KanData(seurat,'nb') = centroid_nb(KanData(seurat,'sf'),d.max=d.max)
     KanData(seurat,'nb.type') = paste0('C_',d.max)
+  }else if(nb.method == 'D'){
+    KanData(seurat,'nb') = tri_nb(KanData(seurat,'sf'),soi=soi)
+    KanData(seurat,'nb.type') = paste0('D_',paste0('soi',soi))
   }else if(nb.method == 'M'){
     KanData(seurat,'nb') = membrane_nb(KanData(seurat,'sf'),d.max=d.max)
     KanData(seurat,'nb.type') = paste0('M_',d.max)
   }else if(nb.method == 'Q'){
     if(KanData(seurat,'platform') == 'visium'){
-      snap = snap %||% (KanData(seurat,'spot_distance')/100)*40
+      snap = snap %||% ((KanData(seurat,'spot_distance')*sqrt(3))/2)
     }else if(KanData(seurat,'platform') == 'visium_hd'){
-      snap = snap %||% KanData(seurat,'spot_distance')
+      snap = snap %||% (KanData(seurat,'spot_distance')*0.51*sqrt(2))
     }else{
       stop('neighbour method "Q" is currently only compatible with Visium/Visium-HD data. Please choose a different method')
     }
-    KanData(seurat,'nb') = queen_nb(KanData(seurat,'sf'),snap=snap)
+    KanData(seurat,'nb') = queen_nb(KanData(seurat,'sf'),snap=snap,layers=layers)
     KanData(seurat,'nb.type') = 'Q'
   }else{
-    stop('nb.method parameter must be either "Q", "C", "K", or "M"')
+    stop('nb.method parameter must be either "Q", "C", "D", "K", or "M"')
   }
   return(seurat)
 }
@@ -187,6 +227,9 @@ nb_summary = function(seurat=NULL){
   }
   if(stringr::str_detect(KanData(seurat,'nb.type'),'K')){
     method = paste0('K-nearest neighbour (K), k = ',strsplit(KanData(seurat,'nb.type'),split='_')[[1]][[2]])
+  }
+  if(stringr::str_detect(KanData(seurat,'nb.type'),'D_')){
+    method = paste0('Delaunay triangulation (D), soi = ',gsub('soi','',KanData(seurat,'nb.type')))
   }
   ncells = ncol(seurat)
   mat = as(KanData(seurat,'nb'),'CsparseMatrix')

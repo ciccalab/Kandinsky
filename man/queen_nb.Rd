@@ -4,12 +4,14 @@
 \alias{queen_nb}
 \title{queen contiguity neighbour identification}
 \usage{
-queen_nb(poly, snap = NULL)
+queen_nb(poly, snap = NULL, layers = 1)
 }
 \arguments{
 \item{poly}{a sf data frame with polygon geometry}
 
 \item{snap}{numeric, extra distance accepted between polygon borders for contiguity relation}
+
+\item{layers}{numeric, number of concentric contiguous layers to include in spot neighbourhood. Only Applied when `nb.method = Q`. Default is 1}
 }
 \value{
 weighted neighbour matrix in a listw object from spdep package

@@ -38,39 +38,37 @@ prepare_visium_seurat = function(path=NULL,dataset.id='X',img.res=c('full','high
   mat_file = list.files(path)
   mat_file = mat_file[stringr::str_detect(mat_file,'matrix.mtx')]
   if(length(mat_file) == 0){
-    # path = paste0(path,'/filtered_feature_bc_matrix')
-    path = paste0(path,'/filtered_feature_bc_matrix.h5')
-    mat_file = path
-    counts <- Read10X_h5(filename = path)
-  } else {
-    counts <- Seurat::Read10X(data.dir = path,
-                        gene.column = 2,
-                        cell.column = 1,
-                        unique.features = TRUE,
-                        strip.suffix = FALSE)
+    path = paste0(path,'/filtered_feature_bc_matrix')
   }
-  # mat_file = mat_file[stringr::str_detect(mat_file,'matrix.mtx')]
+  mat_file = list.files(path)
+  mat_file = mat_file[stringr::str_detect(mat_file,'matrix.mtx')]
   if(length(mat_file) == 0){
     stop('Please provide a path containing either Visium count matrix or a subdirectory "filtered_feature_bc_matrix" containing such file')
   }
-
+  message('Preparing gene expression matrix...')
+  counts <- Seurat::Read10X(data.dir = path,
+                            gene.column = 2,
+                            cell.column = 1,
+                            unique.features = TRUE,
+                            strip.suffix = FALSE)
+  message('Creating Seurat object...')
   sp <- Seurat::CreateSeuratObject(counts = counts,
-                           project = '10XVisium',
-                           assay = 'Visium10x')
+                                   project = '10XVisium',
+                                   assay = 'Visium10x')
 
   DefaultAssay(sp) <- 'Visium10x' #The default assay is set to `Visium10x`
-
   img <- Seurat::Read10X_Image(image.dir = spatial_path,
-                       image.name = img,
-                       assay = 'Visium10x',
-                       slice = dataset.id,
-                       filter.matrix = TRUE)
+                               image.name = img,
+                               assay = 'Visium10x',
+                               slice = dataset.id,
+                               filter.matrix = TRUE)
 
   # Getting the cell (spots) names
   sp_cells = Seurat::Cells(sp)
   img <- img[sp_cells]
 
   # Add the image to the Default object `sp`
+  message('Loading H&E image...')
   sp[[dataset.id]] <- img
   sp@tools$img_path = img_path
   sp@images[[1]]@scale.factors$img_res = img.res
@@ -351,6 +349,42 @@ prepare_xenium_seurat = function(path=NULL,dataset.id='X',h5=TRUE){
   tx = normalizePath(paste0(path,'transcripts.parquet'))
   rownames(meta) = meta$cell_id
   poly = poly[rownames(meta),]
+  message('Preparing fov position data...')
+  utils::untar(paste0(path,'aux_outputs.tar.gz'),exdir=path)
+  fov_file = list.files(paste0(path,'aux_outputs'),pattern='fov_locations.json',full.names=T)
+  if(length(fov_file)>1){
+    fov_file = list.files(paste0(path,'aux_outputs'),pattern='morphology_fov_locations.json',full.names=T)
+  }
+  fovs = as.data.frame(jsonlite::read_json(fov_file))
+  colnames(fovs) = gsub('fov_locations.','',colnames(fovs))
+  fov_ids = sapply(colnames(fovs)[colnames(fovs)!='units'],function(x){strsplit(x,split='\\.')[[1]][[1]]})
+  fov_ids = unique(fov_ids)
+  fov_meta = lapply(fov_ids,function(x){
+    pattern = paste0(x,'\\.')
+    fovs = fovs[,stringr::str_detect(colnames(fovs),pattern)]
+    colnames(fovs) = gsub(pattern,'',colnames(fovs))
+    fovs$fov = x
+    return(fovs)
+    })
+  fov_mask = lapply(fov_meta,function(x){
+    width = x$width
+    height= x$height
+    centroid = x[,c('x','y')]
+    corners <- rbind(
+      centroid + c(-width/2, -height/2),
+      centroid + c(width/2, -height/2),
+      centroid + c(width/2, height/2),
+      centroid + c(-width/2, height/2),
+      centroid + c(-width/2, -height/2)
+    )
+    poly = sfheaders::sf_polygon(corners,x='y',y='x')
+    poly[,colnames(x)] = x
+    return(poly)
+  })
+  rm(fov_meta)
+  fov_mask = purrr::reduce(fov_mask,rbind)
+  fov_mask[,c('x','y')] = sf::st_drop_geometry(fov_mask)[,c('y','x')]
+  fov_mask$fov_number = 1:nrow(fov_mask)
   message('Preparing gene expression matrix...')
   if(h5==F){
     utils::untar(paste0(path,'cell_feature_matrix.tar.gz'),exdir=path)
@@ -410,6 +444,7 @@ prepare_xenium_seurat = function(path=NULL,dataset.id='X',h5=TRUE){
   xenium[[dataset.id]] = coords
   xenium@tools$poly = poly
   xenium@tools$tx = tx
+  xenium@tools$fov = fov_mask
   return(xenium)
 }
 
@@ -706,3 +741,207 @@ prepare_proseg_seurat = function(path=NULL,dataset.id=NULL,pattern=NULL,fovs=NUL
   }
   return(proseg)
 }
+
+
+#' @title Prepare Slide-Seq Seurat data
+#' @name prepare_slideseq_seurat
+#'
+#' @description
+#' Initial formatting of Slide-Seq data to work with Seurat and Kandinsky
+#' @details
+#' This function will use Slide-Seq input data to build a new Seurat object. All Slide-Seq input files must be stored in the same folder that will be specified to call the function.
+#' Kandinsky expects to find Slide-Seq files in the same format proposed in the Slide-Seq V2 original study https://singlecell.broadinstitute.org/single_cell/study/SCP815/sensitive-spatial-genome-wide-expression-profiling-at-cellular-resolution#study-summary
+#' @param path character string specifying the path to the Slide-Seq input files directory
+#' @param dataset.id character string that will be used to name the output Seurat object identity
+#' @param pattern character string that will be used as a key to identify Slide-Seq input file names in case when input files from multiple Slide-Seq samples/slides are stored in the same directory
+#' @returns a Seurat object containing Slide-Seq count matrix, metadata, and spatial coordinates to be used for downstream analysis with Kandinsky functions
+#' @importFrom magrittr %>%
+#' @importFrom sfheaders sf_point
+#' @export
+#' @family prepare_data
+prepare_slideseq_seurat = function(path = NULL, dataset.id=NULL,pattern=NULL){
+  if(substr(path,nchar(path),nchar(path)) == '/'){path = substr(path,1,nchar(path)-1)}
+  path = gsub("//","/",path)
+  files = list.files(path,full.names=T)
+  mat = files[stringr::str_detect(files,'expression')]
+  if(length(mat) > 1){
+    mat = mat[stringr::str_detect(mat,pattern)]
+  }
+  spatial = files[stringr::str_detect(files,'location')]
+  if(length(spatial) > 1){
+    spatial = spatial[stringr::str_detect(spatial,pattern)]
+  }
+  mat = data.table::fread(mat,data.table = F)
+  colnames(mat)[1] = 'gene'
+  rownames(mat) = mat$gene
+  mat$gene = NULL
+  spatial = data.table::fread(spatial,header=F,data.table = F)
+  if(is.character(spatial$V2[1]) | is.character(spatial$V3)[1]){
+    colnames(spatial) = spatial[1,]
+    spatial = spatial[-1,]
+    spatial[,2] = as.numeric(spatial[,2])
+    spatial[,3] = as.numeric(spatial[,3])
+  }
+  colnames(spatial)[c(ncol(spatial)-1, ncol(spatial))] = c('x','y')
+  spatial = sfheaders::sf_point(spatial,x='x',y='y',keep=T)
+  colnames(spatial)[1] = 'barcode'
+  rownames(spatial) = spatial$barcode
+  spatial = spatial[colnames(mat),]
+  spatial[,c('x','y')] = sf::st_coordinates(spatial)
+  message('Creating Seurat object...')
+  #Create Seurat Object with SlideSeq data
+  slseq =  Seurat::CreateSeuratObject(counts = as(as.matrix(mat),'CsparseMatrix'),assay='Slide-Seq')
+  #Prepare single-cell spatial coordinates info (i.e., centroid coordinates)
+  cents =  CreateCentroids(spatial[,c('x','y','barcode')])
+  segmentations.data <- list(
+    "centroids" = cents
+  )
+  coords =CreateFOV(
+    coords = segmentations.data,
+    type = c("centroids"),
+    molecules = NULL,
+    assay = "Slide-Seq"
+  )
+  slseq[[dataset.id]] = coords
+  slseq@tools$poly = spatial
+  return(slseq)
+}
+
+
+
+
+
+#' @title Prepare Singular Genomics G4X Seurat data
+#' @name prepare_g4x_seurat
+#'
+#' @description
+#' Initial formatting of Singular Genomics g4x data to work with Seurat and Kandinsky
+#' @details
+#' This function will use 10X Xenium raw input data to build a new Seurat object. All Xenium input files must be stored in the same folder that will be specified to call the function
+#' @param path character string specifying the path to the G4X input files directory
+#' @param dataset.id character string that will be used to name the output Seurat object identity
+#' @param pattern character string that will be used as a key to identify G4X input file names in case when input files from multiple G4X samples/slides are stored in the same directory
+#' @param h5 boolean, whether reading count matrix and metadata from 'feature_matrix.h5' (TRUE) file or remaining files in the 'single_cell_data/' folder (FALSE)
+#' @param segmentation boolean, whether building cell polygons using G4X segmentation masks from .npz files (TRUE) or using cell centroids (FALSE). Reading .npz files requires the use of python numpy library through reticulate
+#' @returns a Seurat object containing G4X count matrix, metadata, and additional files/file paths to be used for downstream analysis with Kandinsky functions
+#' @importFrom magrittr %>%
+#' @importFrom arrow read_csv_arrow
+#' @importFrom sfheaders sf_polygon sf_point
+#' @export
+#' @family prepare_data
+prepare_g4x_seurat = function(path = NULL, dataset.id=NULL,pattern=NULL,h5=T,segmentation=F){
+  if(substr(path,nchar(path),nchar(path)) == '/'){path = substr(path,1,nchar(path)-1)}
+  path = gsub("//","/",path)
+  sc_data = list.files(paste0(path,'/single_cell_data'),full.names=T)
+  img_data = list.files(paste0(path,'/h_and_e'),full.names=T)
+  tx = list.files(paste0(path,'/rna'),full.names=T)
+  message('Preparing G4X transcript and protein expression data...')
+  if(h5 ==T){
+    data = sc_data[stringr::str_detect(sc_data,'feature_matrix.h5')]
+    mat = rhdf5::h5read(data,name='X')
+    mat = as(mat,'CsparseMatrix')
+    obs = as.data.frame(rhdf5::h5read(data,name='obs'))
+    rownames(obs) = obs$cell_id
+    var = as.data.frame(rhdf5::h5read(data,name='var'))
+    rownames(var) = var$gene_id
+    rownames(mat) = rownames(var)
+    colnames(mat) = rownames(obs)
+    message('Creating Seurat object...')
+    g4x = Seurat::CreateSeuratObject(counts = mat,meta.data=obs,assay='G4X')
+    #Prepare single-cell spatial coordinates info (i.e., centroid coordinates)
+    cents =  CreateCentroids(obs[,c('cell_x','cell_y','cell_id')])
+    segmentations.data <- list(
+      "centroids" = cents
+    )
+    coords =CreateFOV(
+      coords = segmentations.data,
+      type = c("centroids"),
+      molecules = NULL,
+      assay = "G4X"
+    )
+    g4x[[dataset.id]] = coords
+  }else{
+    meta = as.data.frame(arrow::read_csv_arrow(sc_data[stringr::str_detect(sc_data,'cell_metadata.csv.gz')]))
+    rownames(meta) = meta$label
+    prot_mat = as.data.frame(arrow::read_csv_arrow(sc_data[stringr::str_detect(sc_data,'cell_by_protein.csv.gz')]))
+    rownames(prot_mat) = prot_mat$label
+    prot_mat$label = NULL
+    tx_mat = as.data.frame(arrow::read_csv_arrow(sc_data[stringr::str_detect(sc_data,'cell_by_transcript.csv.gz')]))
+    rownames(tx_mat) = tx_mat$label
+    tx_mat$label = NULL
+    tx_mat = as(as.matrix(tx_mat),'CsparseMatrix')
+    neg_p = colnames(tx_mat)[stringr::str_detect(colnames(tx_mat),'NCP.')]
+    neg_s = colnames(tx_mat)[stringr::str_detect(colnames(tx_mat),'NCS.')]
+    negp_mat = tx_mat[,neg_p]
+    negs_mat = tx_mat[,neg_s]
+    tx_mat = tx_mat[,!(colnames(tx_mat) %in% c(neg_p,neg_s))]
+    g4x = Seurat::CreateSeuratObject(counts = Matrix::t(tx_mat),meta.data=meta,assay='G4X')
+    g4x@meta.data$ID = sapply(rownames(g4x@meta.data),function(x){strsplit(x,split='-')[[1]][[2]]})
+    rm(tx_mat)
+    message('Creating Seurat object...')
+    g4x[["protein"]] = Seurat::CreateAssayObject(Matrix::t(prot_mat))
+    rm(prot_mat)
+    g4x[["NCP"]] = Seurat::CreateAssayObject(Matrix::t(negp_mat))
+    g4x[["NCS"]] = Seurat::CreateAssayObject(Matrix::t(negs_mat))
+    rm(neg_p)
+    rm(neg_s)
+    cents =  CreateCentroids(meta[,c('cell_x','cell_y','cell_id')])
+    segmentations.data <- list(
+      "centroids" = cents
+    )
+    coords =CreateFOV(
+      coords = segmentations.data,
+      type = c("centroids"),
+      molecules = NULL,
+      assay = "G4X"
+    )
+    g4x[[dataset.id]] = coords
+  }
+  message('Preparing cell polygons...')
+  if(segmentation == T){
+    seg_data = list.files(paste0(path,'/segmentation'),full.names=T)
+    seg_file = seg_data[stringr::str_detect(seg_data,'segmentation_mask.npz')]
+    if(rlang::is_installed('reticulate')){
+      check_numpy = reticulate::py_list_packages() %>% dplyr::filter(package == 'numpy')
+      if(nrow(check_numpy)==0){
+        warning('Please install numpy in order to read G4X segmentation file.
+                Using cell centroid coordinates instead of segmentation masks..')
+        poly = sfheaders::sf_point(g4x@meta.data,y='cell_x',x='cell_y',keep=T)
+      }else{
+        np = reticulate::import('numpy')
+        seg = np$load(seg_file)
+        seg = seg$f[["nuclei"]]
+        seg = as(seg,'CsparseMatrix')
+        poly = Matrix::which(seg != 0, arr.ind = TRUE) %>% as.data.frame()
+        poly$ID = seg@x
+        rm(seg)
+        poly = poly %>% dplyr::arrange(ID)
+        poly = sfheaders::sf_polygon(poly,x='col',y='row',polygon_id ='ID',keep=T)
+        poly = merge(g4x@tools$poly,g4x@meta.data,by='ID')
+        poly$label = rownames(g4x@meta.data)
+        rownames(poly) = poly$label
+      }
+    }else{
+      warning('Please install reticulate and numpy in order to read G4X segmentation file.
+                Using cell centroid coordinates instead of segmentation masks..')
+      poly = sfheaders::sf_point(g4x@meta.data,y='cell_x',x='cell_y',keep=T)
+    }
+  }else{
+    poly = sfheaders::sf_point(g4x@meta.data,y='cell_x',x='cell_y',keep=T)
+  }
+  if(length(tx) > 0){
+    message('Locating cell transcript file...')
+    g4x@tools$tx = normalizePath(tx)
+  }
+  if(length(img_data)>0){
+    message('Locating G4X H&E image...')
+    img = img_data[stringr::str_detect(img_data,'h_and_e.jp2')]
+    g4x@tools$img_path = normalizePath(img)
+  }
+  g4x@tools$poly = poly
+  return(g4x)
+}
+
+
+
+

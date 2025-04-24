@@ -42,12 +42,7 @@ hotspot_analysis = function(seurat=NULL,feature=NULL,layer='data',sim=999,padj.t
   colnames(gi) = c('Gi','padj')
   gi = gi %>% dplyr::mutate(cluster = ifelse(.data[["Gi"]] > 0 & .data[["padj"]] < padj.thresh,'Hot',
                                       ifelse(.data[["Gi"]] <0 & .data[["padj"]] < padj.thresh,'Cold','NS')))
-  
-  # gi[is.na(gi$cluster),]$cluster='NS'
-  if (any(is.na(gi$cluster))) {
-      gi[is.na(gi$cluster), ]$cluster = "NS"
-    }
-  
+  gi[is.na(gi$cluster),]$cluster='NS'
   gi$cluster = factor(gi$cluster,levels=c('Cold','Hot','NS'))
   #hotspot=as.character(spdep::hotspot(gi,Prname='Pr(z != E(Gi)) Sim',cutoff=padj.thresh))
   #hotspot[is.na(hotspot)]='NS'
@@ -145,7 +140,7 @@ hotspot_count = function(data=NULL,feature=NULL,...){
 #' and it will annotate cells/spots according to the presence/absence of overlap between the two hot/cold spot annotations.
 #' If a hot/cold spot annotation for one or both variables already exist,hotspot analysis will not be rerun for that variable(s)
 #'
-#' @param data a Seurat object containing Kandinsky data (`KanData()`)
+#' @param seurat a Seurat object containing Kandinsky data (`KanData()`)
 #' @param feat.1 character string specifying the name of the first feature to consider
 #' @param feat.2 character string specifying the name of the second feature to consider
 #' @param ... arguments passed to hotspot_analysis function

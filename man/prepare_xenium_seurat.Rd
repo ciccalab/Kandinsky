@@ -25,8 +25,10 @@ This function will use 10X Xenium raw input data to build a new Seurat object. A
 \seealso{
 Other prepare_data: 
 \code{\link{prepare_cosmx_seurat}()},
+\code{\link{prepare_g4x_seurat}()},
 \code{\link{prepare_merscope_seurat}()},
 \code{\link{prepare_proseg_seurat}()},
+\code{\link{prepare_slideseq_seurat}()},
 \code{\link{prepare_visiumHD_seurat}()},
 \code{\link{prepare_visium_seurat}()}
 }

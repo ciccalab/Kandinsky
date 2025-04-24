@@ -31,8 +31,10 @@ This function will use NanoString CosMx raw input data to build a new Seurat obj
 }
 \seealso{
 Other prepare_data: 
+\code{\link{prepare_g4x_seurat}()},
 \code{\link{prepare_merscope_seurat}()},
 \code{\link{prepare_proseg_seurat}()},
+\code{\link{prepare_slideseq_seurat}()},
 \code{\link{prepare_visiumHD_seurat}()},
 \code{\link{prepare_visium_seurat}()},
 \code{\link{prepare_xenium_seurat}()}
