@@ -1,6 +1,6 @@
 Package: Kandinsky
 Type: Package
-Title: Spatial analysis toolkit for imaging- and sequencing-based data
+Title: Kandinsky: neighbourhood analysis of spatial omics data for functional insights on cell ecosystems
 Version: 0.1.0
 Authors@R: 
         c(person("Pietro", "Andrei", email = "pietro.andrei96@gmail.com",role = c("aut", "cre")),
@@ -64,7 +64,7 @@ Suggests:
     knitr,
     rmarkdown
 Config/testthat/edition: 3
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.1
 Collate: 
     '00_Kandinsky_Class_funcs.R'
     '01_Prepare_seurat_data.R'
