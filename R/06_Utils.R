@@ -769,7 +769,7 @@ visium2rast = function(seurat = NULL,img_path = NULL,rm_old_img = F,return.seura
     }
     RGB(img) = c(1,2,3)
   })
-  if(utils::packageVersion('terra') > '1.7.78'){
+  if(utils::compareVersion(paste0(utils::packageVersion('terra')),'1.8.10') >= 0){
     img = terra::flip(img)
   }
   if(return.seurat==T){
@@ -986,7 +986,7 @@ load_g4x_img = function(seurat = NULL,img_path = NULL,rm_old_img = F,return.seur
     }
     RGB(img) = c(1,2,3)
   })
-  if(utils::packageVersion('terra') <= '1.7.78'){
+  if(utils::compareVersion(paste0(utils::packageVersion('terra')),'1.8.10') < 0){
     img = terra::flip(img)
   }
   if(return.seurat==T){
