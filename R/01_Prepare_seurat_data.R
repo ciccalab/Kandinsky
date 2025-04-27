@@ -902,7 +902,7 @@ prepare_g4x_seurat = function(path = NULL, dataset.id=NULL,pattern=NULL,h5=T,seg
     seg_data = list.files(paste0(path,'/segmentation'),full.names=T)
     seg_file = seg_data[stringr::str_detect(seg_data,'segmentation_mask.npz')]
     if(rlang::is_installed('reticulate')){
-      check_numpy = reticulate::py_list_packages() %>% dplyr::filter(package == 'numpy')
+      check_numpy = reticulate::py_list_packages() %>% dplyr::filter(.data[["package"]] == 'numpy')
       if(nrow(check_numpy)==0){
         warning('Please install numpy in order to read G4X segmentation file.
                 Using cell centroid coordinates instead of segmentation masks..')
@@ -915,7 +915,7 @@ prepare_g4x_seurat = function(path = NULL, dataset.id=NULL,pattern=NULL,h5=T,seg
         poly = Matrix::which(seg != 0, arr.ind = TRUE) %>% as.data.frame()
         poly$ID = seg@x
         rm(seg)
-        poly = poly %>% dplyr::arrange(ID)
+        poly = poly %>% dplyr::arrange(.data[["ID"]])
         poly = sfheaders::sf_polygon(poly,x='col',y='row',polygon_id ='ID',keep=T)
         poly = merge(g4x@tools$poly,g4x@meta.data,by='ID')
         poly$label = rownames(g4x@meta.data)

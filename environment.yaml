@@ -31,8 +31,9 @@ dependencies:
   - r-reshape2
   - r-fnn >= 1.1.4
   - r-spatialreg >= 1.0-8
-  - conda-forge::r-snowfall
-  - conda-forge::r-rlecuyer
+  - conda-forge::r-broom
+    #  - conda-forge::r-snowfall
+    #  - conda-forge::r-rlecuyer
   - conda-forge::r-r.utils
   - conda-forge::udunits2
   - conda-forge::igraph

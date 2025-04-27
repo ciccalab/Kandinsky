@@ -1,4 +1,4 @@
-#' @importFrom ggplot2 ggplot theme_void geom_point geom_sf geom_text geom_tile geom_density annotate theme scale_fill_manual scale_fill_gradientn scale_fill_gradient2 scale_y_reverse guides guide_axis labs aes element_line element_rect element_text element_blank theme_classic theme_minimal stat_density2d_filled scale_color_manual after_stat guide_colorbar guide_legend vars facet_wrap ggtitle geom_bar
+#' @importFrom ggplot2 ggplot theme_void geom_point geom_sf geom_text geom_tile geom_density annotate theme scale_fill_manual scale_fill_gradientn scale_fill_gradient2 scale_y_reverse guides guide_axis labs aes element_line element_rect element_text element_blank theme_classic theme_minimal stat_density2d_filled scale_color_manual after_stat guide_colorbar guide_legend vars facet_wrap ggtitle geom_bar scale_color_gradientn coord_fixed scale_size_continuous
 NULL
 
 #color palettes for categorical data
