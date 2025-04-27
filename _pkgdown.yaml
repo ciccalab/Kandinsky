@@ -1,0 +1,12 @@
+pandoc: '3.6'
+pkgdown: 2.1.1
+pkgdown_sha: ~
+articles:
+  modC: modC.html
+  modD: modD.html
+  modE: modE.html
+last_built: 2025-04-16T14:40Z
+template:
+    bootstrap: 5
+    light-switch: true
+    bootswatch: zephyr
