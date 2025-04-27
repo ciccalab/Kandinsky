@@ -70,3 +70,11 @@ R
 ```r
 devtools::install()
 ```
+
+## Tutorials
+
+To start getting familiar with Kandinsky package, and to reproduce the results shown in the original study, user can follow the tutorials available in the `vignettes/` folder or on Kandinsky website:
+
+	- [cell/spot-neighbour based grouping](https://ciccalab.github.io/Kandinsky/articles/modC.html)\
+	- [cell co-localisation/dispersion analysis](https://ciccalab.github.io/Kandinsky/articles/modD.html)\
+	- [hot/cold expression areas detection](https://ciccalab.github.io/Kandinsky/articles/modE.html)\
