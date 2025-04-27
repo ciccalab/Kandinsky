@@ -263,54 +263,6 @@ resample_cells = function(seurat=NULL,label='cell_types',spatial=T,maxcells=1000
   }
 }
 
-
-#' @title subsample neighbour network links
-#' @name subsample_nb
-#' @description
-#' Given a Kandinsky neighbour network in a listw format, this function randomly subset
-#' the number of neighbours assigned to each cell up to a user-defined maximum number of neighbours.
-#' @details
-#' In order to be compatible with most of Kandinsky functions (due to its dependency on spdep package), the resulting
-#' neighbour matrix must be symmetric even after the subsetting. Therefore, an additional step to ensure matrix symmetry
-#' is applied after the subsetting, and for this reason some cells might still have a number of neighbours higher than the user-provided threshold.
-#'
-#' @param seurat a Seurat object containing Kandinsky data slot
-#' @param exp_links numeric, maximum number of expected neighbours per cell after the subsetting
-#' @param seed numeric, random seed for reproducibility
-#' @returns updated seurat object network in a listw format
-#'
-#' @export
-subsample_nb = function(seurat=NULL,exp_links=6,seed=347548){
-  mat= as(KanData(seurat,'nb'),'CsparseMatrix')
-  #if(inherits(listw,'listw')){data='listw';listw=as(listw,'CsparseMatrix')}
-  avg_size= median(Matrix::rowSums(mat))
-  message('Current median number of neighbour links per cell is ',avg_size,'. Trying to reduce to ',exp_links,'...')
-  #ratio = (exp_links/avg_size)
-  #prop = (1-ratio/2)
-  set.seed(seed)
-  colN <- diff(mat@p)
-  indx <- cbind(mat@i+1,rep(seq_along(colN),colN))
-  indx = cbind(indx,1:length(mat@x))
-  indx = as.data.frame(indx)
-  indx = dplyr::group_by(indx,.data[["V2"]]) %>%
-    dplyr::mutate(size=ifelse(dplyr::n()>(exp_links/2),(exp_links/2),dplyr::n())) %>%
-    dplyr::filter(.data[["V1"]] %in% sample(.data[["V1"]],size=unique(.data[["size"]]))) %>%
-    dplyr::ungroup() %>%
-    dplyr::select(.data[["V3"]])
-
-  #mat@x[sample(length(mat@x),size=round(length(mat@x)*prop))] = 0
-  mat@x[setdiff(1:length(mat@x),indx$V3)]=0
-  mat = Matrix::drop0(mat)
-  message('Making neighbour matrix symmetric...')
-  mat = mat + Matrix::t(mat)
-  mat@x[mat@x>1]=1
-  new_avg_size = median(Matrix::rowSums(mat))
-  message('Returning updated neighour network with a median number of ',new_avg_size,' links per cell')
-  KanData(seurat,'nb') = suppressWarnings(spdep::mat2listw(mat,row.names=rownames(mat),style = 'B',zero.policy=T))
-  return(seurat)
-}
-
-
 #' @name global_univ_spatcor
 #' @title Compute global Moran's I spatial autocorrelation statistic
 #' @param seurat a Seurat object containing Kandinsky data (`KanData()`)
@@ -426,37 +378,6 @@ get_nbcounts = function(seurat=NULL,label=NULL,which=NULL){
     rownames(nb) = colnames(seurat)
   }
   return(nb)
-}
-
-#' @title Calculate gene-specific contamination score
-#' @name gene_contamination_score
-#' @description
-#' For each gene expressed within a dataset, given a cell type of interest,
-#'  this function will calculate a contamination score expressed as the fold change between the average expression of each cell belonging to the defined cell type
-#'  and the average expression of their neighbouring cells defined by Kandinsky belonging to different cell types. A high or low contamination score indicates a lower or higher expression of a gene within a cell than its neighbouring cells, respectively.
-#'
-#' @param seurat Seurat object containing Kandinsky data slot
-#' @param label character string indicating meta data variable containing cell type annotation
-#' @param which character vector indicating for which cell type the gene contamination scores will be calculated
-#' @returns named vector of contamination scores, with each score named with its corresponding gene symbol
-#' @export
-gene_contamination_score = function(seurat=NULL,label=NULL,which=NULL){
-  envmat = get_nbcounts(seurat,label,which)
-  if(length(KanData(seurat,'nnMat'))>0){
-    tot_nn = KanData(seurat,'nnMat')$nnMat[,'tot_nn']
-  }else{
-    tot_nn = nnMat(seurat,label=label,return.seurat=F)[,'tot_nn']
-  }
-  if(!is.null(label) & !is.null(which)){
-    tot_nn = tot_nn[seurat@meta.data[[label]] %in% which]
-    selfmat = Matrix::rowMeans(LayerData(seurat,'counts')[,seurat@meta.data[[label]] %in% which])
-  }else{
-    selfmat = Matrix::rowMeans(LayerData(seurat,'counts'))
-  }
-  envmat = Matrix::t(Matrix::t(envmat) %*% Matrix::Diagonal(x=1/tot_nn))
-  envmat = Matrix::colMeans(envmat)
-  scores = setNames(nm=rownames(seurat),object=envmat/selfmat)
-  return(scores)
 }
 
 #################################
