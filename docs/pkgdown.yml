@@ -6,3 +6,7 @@ articles:
   modD: modD.html
   modE: modE.html
 last_built: 2025-04-16T14:40Z
+template:
+    bootstrap: 5
+    light-switch: true
+    bootswatch: zephyr
