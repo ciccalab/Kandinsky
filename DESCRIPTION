@@ -64,7 +64,7 @@ Suggests:
     knitr,
     rmarkdown
 Config/testthat/edition: 3
-RoxygenNote: 7.3.1
+RoxygenNote: 7.3.2
 Collate: 
     '00_Kandinsky_Class_funcs.R'
     '01_Prepare_seurat_data.R'
