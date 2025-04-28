@@ -108,8 +108,24 @@ cosmx = prepare_cosmx_seurat(path = cosmx_path, dataset.id = 'CR48', pattern = '
 
 <br />
 
+## 2) c-NB identification
 
-## 2) Loading cell type annotation
+<hr />
+
+Now that the new `Seurat object` is ready, we use **Kandinsky** to identify **cell neighborhoods (c-NBs)** based on cell-to-cell relationships using the `kandinsky_init()` function.
+
+Since we are working with CosMx data, we set the parameter `tech = 'cosmx'` to ensure Kandinsky correctly interprets the CosMx data format.
+
+For neighborhood identification, we use the **membrane distance method** (`nb.method = 'M'`) and set the distance threshold to 30um (`d.max = 30`).
+
+```{r init-kandinsky,fig.dim=c(4,4)}
+cosmx = kandinsky_init(cosmx, tech = 'cosmx', nb.method = 'M', d.max = 30)
+```
+
+<br />
+
+
+## 3) Loading cell type annotation
 
 <hr />
 
@@ -144,23 +160,6 @@ KanPlot(cosmx,feature = 'final_anno') +
   scale_fill_manual(values = c('Epi' = 'green', 'FibroEndoMuscle' = 'magenta', 'Myeloid' = 'cyan', 'T/NK' = 'red', 'Plasma/B' = 'yellow'))
 ```
 
-<br />
-
-## 3) c-NB identification
-
-<hr />
-
-Now that the new `Seurat object` is ready, we use **Kandinsky** to identify **cell neighborhoods (c-NBs)** based on cell-to-cell relationships using the `kandinsky_init()` function.
-
-Since we are working with CosMx data, we set the parameter `tech = 'cosmx'` to ensure Kandinsky correctly interprets the CosMx data format.
-
-For neighborhood identification, we use the **membrane distance method** (`nb.method = 'M'`) and set the distance threshold to 30um (`d.max = 30`).
-
-```{r init-kandinsky,fig.dim=c(4,4)}
-cosmx = kandinsky_init(cosmx, tech = 'cosmx', nb.method = 'M', d.max = 30)
-```
-
-<br />
 
 We can assess the **size of the identified c-NBs**, expressed as number of cells found within each c-NB, using the Kandinsky `nbSizePlot()` function:
 
@@ -242,24 +241,21 @@ immune  = immune[,c('Epi','Myeloid','TNK')]
 
 all_res = lapply(colnames(immune),function(x){
   fisher_hot = fisher.test(table(cd74$Hot, immune[[x]]), alternative = 'greater')$p.value
-  fisher_cold = fisher.test(table(cd74$Cold, immune[[x]]), alternative = 'greater')$p.value
   return(data.frame(cell_type = x
-                    ,hot_pval = fisher_hot
-                    ,cold_pval = fisher_cold))
+                    ,hot_pval = fisher_hot))
 })
 
 all_res = purrr::reduce(all_res, rbind)
-all_res$FDR = p.adjust(all_res$hot_pval, method = 'BH')
 
 
 cosmx_hot = list()
 for(c in c('Epi','Myeloid','TNK')){
-  fisher_hot = all_res[all_res$cell_type == c,]$FDR
+  fisher_hot = all_res[all_res$cell_type == c,]$hot_pval
   
   if(fisher_hot < 2.2*(10^-16)){
-    fisher_hot = expression('Fisher FDR < 2.2x10'^-16)
+    fisher_hot = expression('Fisher p < 2.2x10'^-16)
   }else{
-    fisher_hot = paste0('Fisher FDR = ', format(fisher_hot, scientific = T, digits = 3))
+    fisher_hot = paste0('Fisher p = ', format(fisher_hot, scientific = T, digits = 3))
   }
   
   hot_props = table(cd74$Hot,immune[[c]]) %>% as.data.frame() %>% 
