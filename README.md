@@ -2,7 +2,7 @@
 
 ## Overview <img src="man/figures/logo.png" align="right" height="138" alt="" />
 
-Kandinsky is an R package developed for deriving functional insights on cellular ecosystems from neighbour analysis of spatial omics data. Kandinsky implements different approaches for cell or spot neighbourhood identification and analysis, including supervised and unsupervised clustering for downstream functional investigations, spatial co-localisation or dispersion, and detection of gene expression patterns.
+Kandinsky is an R package developed for deriving functional insights on cellular ecosystems from neighbour analysis of spatial omics data. Kandinsky implements different approaches for cell or spot neighbourhood identification and analysis, including differential expression and unsupervised clustering for downstream functional investigations, spatial co-localisation or dispersion, and detection of hot/cold expression areas.
 
 <img src="man/figures/Kandinsky_Overview.png" align="center" height="500" alt="" />
 
@@ -21,7 +21,7 @@ Kandinsky implements helper functions to process data loading and formatting int
 
 KNN, centroid distance, and Delaunay triangulation are applicable to both spots and cells, while Queen contiguity is limited to spot data and membrane distances can be measured only from single cell segmentation data.
 
-Once defined, c/s-NBs can be used together with cell/spot type annotation and expression values to (1) group cells, spots, or c/s-NBs, (2) measure their co-localisation or dispersion and (3) derive hot and cold expression areas within the tissue.
+Once defined, c/s-NBs can be used together with cell/spot type annotation and expression values to (1) group cells or spots for differential expression analysis,(2) c/s-NBs spatial clustering, (3) measure their co-localisation or dispersion and (4) derive hot and cold expression areas within the tissue.
 
 ## Setting up Kandinsky environment
 To simplify the installation process, users can first set up a conda environment using the environment.yaml file.
