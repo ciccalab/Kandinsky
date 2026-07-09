@@ -21,7 +21,7 @@ Kandinsky implements helper functions to process data loading and formatting int
 
 KNN, centroid distance, and Delaunay triangulation are applicable to both spots and cells, while Queen contiguity is limited to spot data and membrane distances can be measured only from single cell segmentation data.
 
-Once defined, c/s-NBs can be used together with cell/spot type annotation and expression values to (1) group cells or spots for differential expression analysis,(2) c/s-NBs spatial clustering, (3) measure their co-localisation or dispersion and (4) derive hot and cold expression areas within the tissue.
+Once defined, c/s-NBs can be used together with cell/spot type annotation and expression values to (1) group cells or spots for differential expression analysis,(2) cluster c/s-NBs based on their composition, (3) measure their co-localisation or dispersion and (4) derive hot and cold expression areas within the tissue.
 
 ## Setting up Kandinsky environment
 To simplify the installation process, users can first set up a conda environment using the environment.yaml file.
@@ -75,6 +75,6 @@ devtools::install()
 
 To start getting familiar with Kandinsky package, and to reproduce the results shown in the original study, user can follow the tutorials available in the `vignettes/` folder or on Kandinsky website:
 
-- [cell/spot-neighbour based grouping](https://ciccalab.github.io/Kandinsky/articles/modC.html)
+- [cell/spot-neighbour based differential expression analysis and c/s-NB spatial clustering](https://ciccalab.github.io/Kandinsky/articles/modC.html)
 - [cell co-localisation/dispersion analysis](https://ciccalab.github.io/Kandinsky/articles/modD.html)
-- [hot/cold expression areas detection](https://ciccalab.github.io/Kandinsky/articles/modE.html)
+- [hot/cold expression area detection](https://ciccalab.github.io/Kandinsky/articles/modE.html)
