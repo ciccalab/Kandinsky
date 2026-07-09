@@ -277,14 +277,33 @@ prepare_cosmx_seurat = function(path=NULL,dataset.id='X',pattern=NULL,fovs=NULL)
     #Convert pixel to um
     poly$x_global_um = poly$x_global_px*0.12028
     poly$y_global_um = poly$y_global_px*0.12028
+    small_polys = poly %>% dplyr::count(.data$cell_ID) %>% dplyr::filter(.data$n <4)
+    if(nrow(small_polys)>0){
+	    warning(nrow(small_polys),' small polygons detected (less than 4 edges). Removing small polygons...')
+	    poly = poly[poly$cell_ID %in% small_polys$cell_ID,]
+    }
+    common_polys = intersect(common,unique(poly$cell_ID))
+    if(length(common_polys) != length(common)){
+	    warning('Removing ',length(common)-length(common_polys),' cells with unmatched polygon/metadata')
+	    meta = meta[common_polys,]
+	    mat = mat[,common_polys]
+	    if(dim(negmat)[1] > 0){
+		    negmat =  negmat[,common_polys]
+	    }
+	    if(dim(sysmat)[1] > 0){
+		    sysmat = sysmat[,common_polys]
+	    }
+    }
     poly = sfheaders::sf_polygon(poly,x='x_global_um',y='y_global_um',polygon_id='cell_ID',keep=T)
     rownames(poly) = poly$cell_ID
     poly = poly[rownames(meta),]
-  }else{
+    }else{
     warning('Cosmx polygon file not found in the specified folder.\n
             Polygons will be created using cell centroid coordinates in the metadata table')
-    poly = sfheaders::sf_point(meta %>% dplyr::select(.data$CenterX_global_px,.data$CenterY_global_px,.data$cell_ID,.data$fov),
-                               x='CenterX_global_px',y='CenterY_global_px',polygon_id='cell_ID',keep=T)
+	    meta$CenterX_global_um = meta$CenterX_global_px*0.12028
+	    meta$CenterY_global_um = meta$CenterY_global_px*0.12028
+	    poly = sfheaders::sf_point(meta %>% dplyr::select(.data$CenterX_global_um,.data$CenterY_global_um,.data$cell_ID,.data$fov),
+                               x='CenterX_global_um',y='CenterY_global_um',polygon_id='cell_ID',keep=T)
   }
   message('Creating Seurat object...')
   #Create Seurat Object with separate CosMx and NegProbes Assays
@@ -296,7 +315,7 @@ prepare_cosmx_seurat = function(path=NULL,dataset.id='X',pattern=NULL,fovs=NULL)
     cosmx[["SystemControl"]] = Seurat::CreateAssayObject(sysmat)
   }
   #Prepare single-cell spatial coordinates info (i.e., centroid coordinates)
-  cents =  CreateCentroids(meta %>% dplyr::select(.data$CenterY_global_px,.data$CenterX_global_px,.data$cell_ID))
+  cents =  CreateCentroids(meta %>% dplyr::select(.data$CenterY_global_um,.data$CenterX_global_um,.data$cell_ID))
   segmentations.data <- list(
     "centroids" = cents
   )
@@ -350,7 +369,10 @@ prepare_xenium_seurat = function(path=NULL,dataset.id='X',h5=TRUE){
   rownames(meta) = meta$cell_id
   poly = poly[rownames(meta),]
   message('Preparing fov position data...')
+  #Check if subfolder has been unzipped already
+  if(length(list.files(paste0(path,'aux_outputs')))==0){
   utils::untar(paste0(path,'aux_outputs.tar.gz'),exdir=path)
+  }
   fov_file = list.files(paste0(path,'aux_outputs'),pattern='fov_locations.json',full.names=T)
   if(length(fov_file)>1){
     fov_file = list.files(paste0(path,'aux_outputs'),pattern='morphology_fov_locations.json',full.names=T)
@@ -626,10 +648,13 @@ prepare_seurat_other = function(data=NULL,markers.ids=NULL,xcoord=NULL,ycoord=NU
 #' @export
 #' @family prepare_data
 prepare_proseg_seurat = function(path=NULL,dataset.id=NULL,pattern=NULL,fovs=NULL,tech=c('cosmx','merscope','xenium')){
-  if(tech>1){tech=NULL}
+  if(length(tech)>1){tech=NULL}
   if(substr(path,nchar(path),nchar(path)) == '/'){path = substr(path,1,nchar(path)-1)}
   path = gsub("//","/",path)
-  poly = list.files(path,pattern='cell-polygons\\.geojson',full.names = T)
+  poly = list.files(path,pattern='^cell-polygons\\.geojson',full.names = T)
+  if(length(poly) > 1){
+     poly = poly[stringr::str_detect(poly,'union',negate=T)] #select consensus polygon file if present
+  }
   if(length(poly) > 1){
     poly = poly[stringr::str_detect(poly,pattern)]
   }
@@ -647,7 +672,7 @@ prepare_proseg_seurat = function(path=NULL,dataset.id=NULL,pattern=NULL,fovs=NUL
   }
   if(length(meta)>0){
     meta = arrow::read_csv_arrow(meta)
-    meta = meta %>% dplyr::mutate(cell_ID = paste0(.data$fov,'_',.data$cell_ID))
+    meta = meta %>% dplyr::mutate(cell_ID = paste0(.data$fov,'_',.data$cell)) %>% as.data.frame()
     rownames(meta)=meta$cell_ID
   }else{
     stop('cell metadata file not found')
@@ -733,7 +758,7 @@ prepare_proseg_seurat = function(path=NULL,dataset.id=NULL,pattern=NULL,fovs=NUL
   )
 
   proseg[[dataset.id]] = coords
-  if(length(poly>0)){
+  if(length(poly)>0){
     proseg@tools$poly = poly
   }
   if(length(tx) > 0){
@@ -815,9 +840,9 @@ prepare_slideseq_seurat = function(path = NULL, dataset.id=NULL,pattern=NULL){
 #' @name prepare_g4x_seurat
 #'
 #' @description
-#' Initial formatting of Singular Genomics G4X data to work with Seurat and Kandinsky
+#' Initial formatting of Singular Genomics g4x data to work with Seurat and Kandinsky
 #' @details
-#' This function will use Singular Genomics G4X raw input data to build a new Seurat object. All G4X input files must be stored in the same folder that will be specified to call the function
+#' This function will use 10X Xenium raw input data to build a new Seurat object. All Xenium input files must be stored in the same folder that will be specified to call the function
 #' @param path character string specifying the path to the G4X input files directory
 #' @param dataset.id character string that will be used to name the output Seurat object identity
 #' @param pattern character string that will be used as a key to identify G4X input file names in case when input files from multiple G4X samples/slides are stored in the same directory

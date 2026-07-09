@@ -7,7 +7,7 @@
 hotspot_count(data = NULL, feature = NULL, ...)
 }
 \arguments{
-\item{data}{a Seurat object containing Kandinsky data (`KanData()`)}
+\item{data}{a Seurat object containing Kandinsky data (\code{KanData()})}
 
 \item{feature}{character string specifying the name of the feature(s) used to compute Getis-Ord Gi* statistics}
 
@@ -21,5 +21,5 @@ Summarise number and min/max/median size of hot- and cold-spots for a variable o
 }
 \details{
 This function will look for the presence of already existing hotspot annotation in the meta.data of Seurat object for the variable(s) of interest.
-If no annotations exist, the `hotspot_analysis()` function will be automatically called.
+If no annotations exist, the \code{hotspot_analysis()} function will be automatically called.
 }

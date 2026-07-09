@@ -5,16 +5,19 @@
 \title{JC colocalization test and plot using Seurat/Kandinsky object}
 \usage{
 jc_coloc(
-  seurat = NULL,
+  data = NULL,
   label = NULL,
+  max.cap = 0.9,
   return.mat = F,
   wc.type = c("mat", "listw")
 )
 }
 \arguments{
-\item{seurat}{a Seurat object containing Kandinsky data slot}
+\item{data}{a Seurat object containing Kandinsky data slot}
 
 \item{label}{name of the metadata column variable containing cell type annotation to be used for join count test}
+
+\item{max.cap}{numeric, quantile cap to apply to colocalisation coefficients for colour scale creation. Default is 0.9, will set the coefficient value limit to the 90\% quantile of all coefficients}
 
 \item{return.mat}{boolean, whether returning only colocalization plot (FALSE) or also a dataframe containing colocalization test results}
 
@@ -25,4 +28,7 @@ a colocalization plot (when return.mat is FALSE) or a list containing colocaliza
 }
 \description{
 Call multi_jc() function to perform colocalization test, and plot results in the form of a heatmap
+}
+\seealso{
+\code{\link[=squidpy_coloc]{squidpy_coloc()}}, \code{\link[=cellcharter_coloc]{cellcharter_coloc()}}, \code{\link[=hoodscanR_coloc]{hoodscanR_coloc()}}, \code{\link[=giotto_coloc]{giotto_coloc()}} for alternative colocalisation methods
 }

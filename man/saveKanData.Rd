@@ -17,7 +17,7 @@ saveKanData(object, file = NULL, with.seurat = T)
 
 \item{file}{character string specifying the path to the file where to save Kandinsky data. It must be in .rds format}
 
-\item{with.seurat}{boolean, whether saving the whole Seurat object together with Kandinsky data (`TRUE`) or Kandinsky data alone (`FALSE`). Default value is set to `TRUE`. Ignored when `object` corresponds to a Kandinsky object}
+\item{with.seurat}{boolean, whether saving the whole Seurat object together with Kandinsky data (\code{TRUE}) or Kandinsky data alone (\code{FALSE}). Default value is set to \code{TRUE}. Ignored when \code{object} corresponds to a Kandinsky object}
 }
 \description{
 saveRDS adaptation for Kandinsky data. it can save Kandinsky data alone or as part of a Seurat object

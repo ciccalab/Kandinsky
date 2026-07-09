@@ -5,7 +5,7 @@
 \alias{c24}
 \title{C24 discrete color palette}
 \format{
-## `c24`
+a vector of 24 colour identifiers
 }
 \usage{
 c24

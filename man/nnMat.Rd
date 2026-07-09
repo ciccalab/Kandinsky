@@ -6,11 +6,13 @@
 \usage{
 nnMat(
   data,
-  method = c("Q", "K", "C", "M"),
+  label = NULL,
+  method = c("Q", "C", "D", "K", "M"),
+  layers = 1,
   snap = NULL,
   k = NULL,
   d.max = NULL,
-  label = "final_anno",
+  soi = F,
   ids_anno = NULL,
   return.seurat = T
 )
@@ -18,25 +20,30 @@ nnMat(
 \arguments{
 \item{data}{a Seurat object containing Kandinsky data}
 
+\item{label}{character string specifying the variable name to be used to define cell annotation groups}
+
 \item{method}{character string specifying the method to be used to identify neighbours.
 Must be one of the following:
-'Q': queen contiguity method,check for contact (not overlap) between any edge or side od two polygons (refers to the queen movement rule in chess). Currently only applicable for Visium/Visium-HD data
-'C': centroid-based method, use maximum centroid distance threshold to identify spot/cell neighbours
-'K': KNN method, define k closest neighbours to each spot/cell
+'Q': queen contiguity method,check for contact (not overlap) between any edge or side od two polygons (refers to the queen movement rule in chess). Currently only applicable for Visium/Visium-HD data;
+'C': centroid-based method, use maximum centroid distance threshold to identify spot/cell neighbours;
+'D': Delaunay triangulation method;
+'K': KNN method, define k closest neighbours to each spot/cell;
 'M': membrane-based method, check for the occurrence of a physical contact/intersection within a distance threshold between cell boundaries. Not applicable in the case of Visium spots.
-When argument `method` is not specified or is set to `NULL`, the function will use `nb` slot already stored in Kandinsky object to create neighbour matrix}
+When argument \code{method} is not specified or is set to \code{NULL}, the function will use \code{nb} slot already stored in Kandinsky object to create neighbour matrix}
 
-\item{snap}{numeric, extra distance accepted between polygon borders for contiguity relation. Applied when 'method' is set to `Q`. Can't work with point geometries like cell centroids.}
+\item{layers}{numeric, number of concentric contiguous layers to include in spot neighbourhood. Only Applied when 'nb.method = Q'. Default is 1.}
 
-\item{k}{numeric, number of nearest neighbours to be searched. Applied when `method` is set to `K`}
+\item{snap}{numeric, extra distance accepted between polygon borders for contiguity relation. Applied when 'method' is set to \code{Q}. Can't work with point geometries like cell centroids.}
 
-\item{d.max}{numeric, maximum centroid or membrane distance threshold. Applied when `method` is set to `C` or `M`}
+\item{k}{numeric, number of nearest neighbours to be searched. Applied when \code{method} is set to \code{K}.}
 
-\item{label}{character string specifying the variable name to be used to defne cell annotation groups}
+\item{d.max}{numeric, maximum centroid or membrane distance threshold. Applied when \code{method} is set to \code{C} or \code{M}.}
+
+\item{soi}{boolean, whether or not filter Delaunay network to keep sphere of influence (SOI) graph. Default is FALSE.}
 
 \item{ids_anno}{optional, character string specifying any extra variable to be added to the final distance matrix}
 
-\item{return.seurat}{boolean, whether returning neighbour matrix alone (FALSE) or the input Seurat object with a new `nnMat` slot as part of the Kandinsky data}
+\item{return.seurat}{boolean, whether returning neighbour matrix alone (FALSE) or the input Seurat object with a new \code{nnMat} slot as part of the Kandinsky data}
 }
 \description{
 From a metadata file, given a list of cells with the corrisponding annotated cell type, build a neighbor matrix reporting the number of occurrences for each cell type

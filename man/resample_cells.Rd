@@ -22,14 +22,14 @@ resample_cells(
 \item{spatial}{boolean, whether or not applying a spatially-informed resampling}
 
 \item{maxcells}{numeric, ideal number of cells to resample.
-When `spatial` is true, an optimal number of cells as close as possible to `maxcells` argument
+When \code{spatial} is true, an optimal number of cells as close as possible to \code{maxcells} argument
 will be sampled by testing multiple resampling resolution parameters}
 
 \item{seed}{numeric, random seed for reproducibility}
 
 \item{return.seurat}{boolean, whether returning resampled IDs (FALSE) or the whole seurat object already filtered with resampled IDs (TRUE)}
 
-\item{update.kandinsky}{boolean, whether or not update Kandinsky data after resampling. Default is TRUE. Only applied when `return.seurat` is TRUE}
+\item{update.kandinsky}{boolean, whether or not update Kandinsky data after resampling. Default is TRUE. Only applied when \code{return.seurat} is TRUE}
 }
 \value{
 vector of resampled cell IDs or Seurat object with resampled cell subset

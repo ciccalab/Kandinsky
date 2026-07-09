@@ -17,7 +17,7 @@ global_biv_spatcor(
 )
 }
 \arguments{
-\item{seurat}{a Seurat object containing Kandinsky data (`KanData()`)}
+\item{seurat}{a Seurat object containing Kandinsky data (\code{KanData()})}
 
 \item{var1}{character string or vector specifying the first variable(s) to use to compute bivariate spatial correlation.}
 
@@ -25,7 +25,7 @@ global_biv_spatcor(
 
 \item{sim}{number of Monte Carlo simulations to be run for estimating Moran/Lee coefficients significance}
 
-\item{lag}{integer value indicating the extent of cell/spot neighbours to be considered to calculate Moran/Lee statistics. `lag = 1` indicates that only 1st order neighbours will be considered, while `lag=2` indicates that all neighbours of each 1st order neighbour will be also considered for each spot/cell, and so on.}
+\item{lag}{integer value indicating the extent of cell/spot neighbours to be considered to calculate Moran/Lee statistics. \code{lag = 1} indicates that only 1st order neighbours will be considered, while \code{lag=2} indicates that all neighbours of each 1st order neighbour will be also considered for each spot/cell, and so on.}
 
 \item{method}{character string specifying which method to use to estimate spatial correlation. Must be one of the following: "lee" (default), "moran".}
 
@@ -36,7 +36,7 @@ global_biv_spatcor(
 \item{seed}{numeric, random seed for reproducibility. Default is set to 347548}
 }
 \value{
-a data.frame reporting the chosen spatial statistic coefficient with the associated p value for each possible combination between variables specified with `var1` `var2` parameters.
+a data.frame reporting the chosen spatial statistic coefficient with the associated p value for each possible combination between variables specified with \code{var1} \code{var2} parameters.
 }
 \description{
 Compute bivariate global spatial correlation. You can use either Lee's L (default) or bivariate Moran's I statistics.

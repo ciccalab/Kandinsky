@@ -16,22 +16,22 @@ visium2sf(
 \arguments{
 \item{seurat}{a Seurat object containing Visium/Visium-HD data}
 
-\item{is.hd}{boolean, whether or not the Seurat object contain data generated via Visium-HD technology. Default value is `FALSE`}
+\item{is.hd}{boolean, whether or not the Seurat object contain data generated via Visium-HD technology. Default value is \code{FALSE}}
 
-\item{return.seurat}{boolean, whether returning the input Seurat file with the nb object stored in the `misc` slot (`TRUE`) or the nb object alone (`FALSE`). Default value is `TRUE`}
+\item{return.seurat}{boolean, whether returning the input Seurat file with the nb object stored in the \code{misc} slot (\code{TRUE}) or the nb object alone (\code{FALSE}). Default value is \code{TRUE}}
 
 \item{binsize}{numeric value indicating which bin resolution will be considered to create the final sf object when working with Visium-HD data}
 
-\item{res}{character string specifying which version of H&E Visium image have been used to create Kandinsky data. Must be one of the following: `low`, `high`, `full`, where `full` refers to the original H&E full-resolution tiff image.
+\item{res}{character string specifying which version of H&E Visium image have been used to create Kandinsky data. Must be one of the following: \code{low}, \code{high}, \code{full}, where \code{full} refers to the original H&E full-resolution tiff image.
 This parameter will be used to select the right scaling factor to align spot and image coordinates}
 
-\item{img}{Visium H&E image in array or SpatRaster format. Image resolution should match with the one specified for spot coordinates through the `res` parameter}
+\item{img}{Visium H&E image in array or SpatRaster format. Image resolution should match with the one specified for spot coordinates through the \code{res} parameter}
 }
 \value{
-Seurat object with the new sf object stored in the `misc` slot or the sf object alone, depending on the `return.seurat` parameter
+Seurat object with the new sf object stored in the \code{misc} slot or the sf object alone, depending on the \code{return.seurat} parameter
 }
 \description{
-Create a sf data frame object (package `sf`) using Visium spots coordinates
+Create a sf data frame object (package \code{sf}) using Visium spots coordinates
 }
 \details{
 This function will use Visium spot coordinates using an external 10X spot position file or spot coordinates already stored inside the input Seurat object.

@@ -171,7 +171,7 @@ resample_cells = function(seurat=NULL,label='cell_types',spatial=T,maxcells=1000
     new_ids=rownames(purrr::reduce(new_ids,rbind))
   }else{
     bbox = sf::st_bbox(KanData(seurat,'sf'))
-    opt = expand.grid(seq(50,150,10),seq(1,3,1))
+    opt = expand.grid(seq(50,150,10),seq(1,4,1))
     opt = opt[order(opt$Var1),]
     mindist = Inf
     best = NULL
@@ -263,6 +263,7 @@ resample_cells = function(seurat=NULL,label='cell_types',spatial=T,maxcells=1000
   }
 }
 
+
 #' @name global_univ_spatcor
 #' @title Compute global Moran's I spatial autocorrelation statistic
 #' @param seurat a Seurat object containing Kandinsky data (`KanData()`)
@@ -353,6 +354,7 @@ global_biv_spatcor = function(seurat,var1=NULL,var2=NULL,sim=49,lag=1,method=c('
 #' @param seurat a Seurat object containing Kandinsky data slot
 #' @param label character string indicating meta data variable containing cell type annotation
 #' @param which character vector indicating for which cell type creating the neighbourhood expression matrix. Cells belonging to the same class(es) specified through `which` will not be included in the expression count aggregation.
+#' @param features vector of feature/genes names to consider to build the aggregated count matrix
 #' @details
 #' When `label` or `which` parameters are set to NULL, this function will create an expression count neighbourhood matrix considering all cells included in the dataset.
 #' Otherwise, the aggregated count matrix will be created for only cells belonging to the cell class(es) specified through the `which` argument, and cells from that same class will not be considered for the gene expression count aggregation across neighbouring cells.
@@ -361,7 +363,7 @@ global_biv_spatcor = function(seurat,var1=NULL,var2=NULL,sim=49,lag=1,method=c('
 #' @returns sparse cell (rows) X gene (columns) count matrix.  Each cell count profile is the result of the aggregation of all gene expression counts found across its neighbouring cells.
 #'
 #' @export
-get_nbcounts = function(seurat=NULL,label=NULL,which=NULL){
+get_nbcounts = function(seurat=NULL,label=NULL,which=NULL,features=NULL){
   nb = as(KanData(seurat,'nb'),'CsparseMatrix')
   if(!is.null(label) & !is.null(which)){
     nb[,seurat@meta.data[[label]] %in% which]=0
@@ -371,7 +373,8 @@ get_nbcounts = function(seurat=NULL,label=NULL,which=NULL){
   }
   #nb = Matrix::Diagonal(x=rep(1, nrow(nb))) %*% nb
   #nb@x[nb@x==0] <- 1
-  nb = nb %*% Matrix::t(LayerData(seurat,layer='counts'))
+  features = features %||% rownames(seurat)
+  nb = nb %*% Matrix::t(LayerData(seurat,layer='counts',feature=features))
   if(!is.null(label) & !is.null(which)){
     rownames(nb) = colnames(seurat)[seurat@meta.data[[label]] %in% which]
   }else{
@@ -587,7 +590,7 @@ CosmxFovPlot = function(fovs=NULL,which=NULL,img_dir = NULL,maxres=2000){
   fovs = fovs %>% dplyr::arrange(.data[["FOV"]])
   which = which %||% unique(fovs[["FOV"]])
   fovs = fovs %>% dplyr::filter(.data[["FOV"]] %in% which)
-  bbox = split(fovs,f=fovs$FOV) %>% lapply(.,sf::st_bbox)
+  bbox = split(fovs,f=fovs$FOV) %>% lapply(.data,sf::st_bbox)
   imgs = list.files(img_dir,full.names=T) %>% sort()
   if(all(stringr::str_detect(imgs,paste(fovs$fov_ID_v2,collapse="|"),negate=T))){
     imgs = imgs[stringr::str_detect(imgs,paste(fovs$fov_ID,collapse="|"))]
@@ -761,32 +764,32 @@ visium2sf = function(seurat = NULL,is.hd=F,return.seurat=T,binsize=16,res=NULL,i
 #' @importFrom terra RGB RGB<-
 #' @export
 visium2rast = function(seurat = NULL,img_path = NULL,rm_old_img = F,return.seurat=T,max_dim = 2000){
-  suppressWarnings({
-    img = terra::rast(img_path)
-    scalef = round(max(dim(img))/max_dim,1)
-    if(scalef >= 2){
-      img = terra::aggregate(img,fact=scalef,fun='mean')
-    }
-    RGB(img) = c(1,2,3)
-  })
-  if(utils::compareVersion(paste0(utils::packageVersion('terra')),'1.8.10') >= 0){
-    img = terra::flip(img)
-  }
-  if(return.seurat==T){
-    if(!is.null(KanData(seurat))){
-      KanData(seurat,'img') = img
-    }else{
-      seurat@tools$img = img
-    }
-    if(rm_old_img == T){
-      message('Removing Seurat image slot data')
-      seurat@images[[1]] = NULL
-    }
-    message("New SpatRaster data stored as tool 'img' data (i.e., seurat@tools$img)")
-    return(seurat)
-  }else{
-    return(img)
-  }
+	suppressWarnings({
+		img = terra::rast(img_path)
+		scalef = round(max(dim(img))/max_dim,1)
+		if(scalef >= 2){
+			img = terra::aggregate(img,fact=scalef,fun='mean')
+		}
+		RGB(img) = c(1,2,3)
+	})
+	if(utils::compareVersion(paste0(utils::packageVersion('terra')),'1.8.10') >= 0){
+		img = terra::flip(img)
+	}
+	if(return.seurat==T){
+		if(!is.null(KanData(seurat))){
+			KanData(seurat,'img') = img    
+		}else{
+			seurat@tools$img = img
+		}
+		if(rm_old_img == T){
+			message('Removing Seurat image slot data')
+			seurat@images[[1]] = NULL
+		}
+		message("New SpatRaster data stored as tool 'img' data (i.e., seurat@tools$img)")
+		return(seurat)
+	}else{
+		return(img)
+	}
 }
 
 
@@ -1005,3 +1008,208 @@ load_g4x_img = function(seurat = NULL,img_path = NULL,rm_old_img = F,return.seur
     return(img)
   }
 }
+
+
+#' @title Create cell mask polygon
+#' @name create_cell_masks
+#' 
+#' @description 
+#' Create a cell mask polygon based on dbscan spatial clusters of cell type(s) of interest
+#' @details
+#' dbscan spatial density clustering is first applied to define independent clusters of cells. 
+#' Concaveman algorithm is then applied separately to each cluster to draw a concave hull mask
+#'
+#' @param seurat a Seurat object containing Kandinsky data
+#' @param sample_key character string specifying a variable stored in the Seurat object to use as sample/batch annotation.
+#' @param label character string indicating meta data variable containing cell type annotation
+#' @param label_class character string indicating which cell type(s) to consider to create the cell mask
+#' @param eps size (radius) of the epsilon neighborhood. See dbscan documentation for more details.
+#' @param minPts number of minimum points required in the eps neighborhood for core points (including the point itself). See dbscan documentation for more details.
+#' @param concavity a relative measure of concavity. 1 results in a relatively detailed shape, Infinity results in a convex hull. You can use values lower than 1, but they can produce pretty crazy shapes. See concaveman documentation for more details.
+#' @param lengthThreshold when a segment length is under this threshold, it stops being considered for further detalization. Higher values result in simpler shapes. See concaveman documentation for more details.
+#' @param buffer numeric, size of spatial buffer to apply to the final cell mask. If NULL, no buffer will be applied. Default is NULL
+#' @return a sf data.frame object containing the mask polygon coordinates for each cell cluster defined with dbscan
+#' @export 
+create_cell_masks = function(seurat,sample_key=NULL,label=NULL,label_class=NULL,eps=30,minPts=6,concavity = 3,lengthThreshold = 0,buffer=NULL){
+  vars=c(label,sample_key)
+  cells = populate_sf(seurat,vars=vars) %>% dplyr::filter(.data[[label]] %in% label_class)
+  if(!is.null(sample_key)){
+    cells = split(cells,cells[[sample_key]])
+    cells = cells[lapply(cells,nrow)>0]
+    polys = lapply(cells,function(cell){
+      clusts = dbscan::dbscan(sf::st_coordinates(sf::st_centroid(cell)),eps=eps,minPts=minPts)
+      cell$clust = as.character(clusts$cluster)
+      #Remove unclustered cells
+      cell = cell[cell$clust != '0',]
+      all_clusts = unique(cell$clust)
+      if(length(all_clusts)>0){
+      cell = split(cell,cell$clust)
+      poly = lapply(cell,concaveman::concaveman,concavity=concavity,length_threshold=lengthThreshold)
+      poly = purrr::reduce(poly,rbind) %>% sf::st_zm()
+      poly[,sample_key] = unique(cell[[sample_key]])
+      poly %>% dplyr::mutate(k=as.character(dplyr::row_number()))
+      }else{
+        return(NULL)
+      }
+    })
+    if(!is.null(buffer)){
+      do.call('rbind',polys) %>% sf::st_buffer(dist=buffer)
+    }else{
+      do.call('rbind',polys)
+    }
+  }else{
+  clusts = dbscan::dbscan(sf::st_coordinates(sf::st_centroid(cells)),eps=eps,minPts=minPts)
+  cells$clust = as.character(clusts$cluster)
+  cells = cells[cells$clust != '0',]
+  all_clusts = unique(cells$clust)
+  cells = split(cells,cells$clust)
+  polys = lapply(cells,concaveman::concaveman,concavity=concavity,length_threshold=lengthThreshold)
+  if(is.null(buffer)){
+    do.call('rbind',polys) %>% sf::st_zm() %>% dplyr::mutate(k=as.character(dplyr::row_number()))
+  }else{
+    do.call('rbind',polys) %>% sf::st_zm() %>% dplyr::mutate(k=as.character(dplyr::row_number())) %>% sf::st_buffer(dist=buffer)
+  }
+  }
+}
+
+
+#' @name grid_visium
+#' @title Create Visium-like spots in a ordered grid
+#' @description
+#' Create Visium-like circular spots covering the whole sample area
+#' 
+#' @param data a Seurat object containing Kandinsky data slot
+#' @returns VisiumHD-like circular spot polygon
+#' @export
+grid_visium = function(data=NULL){
+  polys = KanData(data,'sf')
+  grid = sf::st_make_grid(sf::st_bbox(polys),square=F,what='centers',cellsize=100)
+  sf::st_as_sf(sf::st_buffer(grid,dist=55/2))
+}
+
+#' @name grid_visiumhd
+#' @title Create VisiumHD-like bins in a ordered grid
+#' @description
+#' Split sample area into a regular square grid to replicate VisiumHD bins
+#' 
+#' @param data a Seurat object containing Kandinsky data slot
+#' @param res numeric, Visium-HD bin resolution when `style` is set to 'bins'.
+#' @returns VisiumHD-like square bin polygons
+#' @export
+grid_visiumhd = function(data=NULL,res=NULL){
+  polys = KanData(data,'sf')
+  grid = sf::st_make_grid(sf::st_bbox(polys),square=T,what='centers',cellsize=res)
+  sf::st_as_sf(sf::st_buffer(grid,dist=res,endCapStyle = 'SQUARE'))
+}
+
+
+#' @name visiumize
+#' @title Convert single-cell spatial transcriptomics data to Visium/Visium-HD format
+#' @description
+#' This function collapses single-cell gene expression data into spots or bins, depending on
+#' the desired format.
+#' 
+#' @param data a Seurat object containing Kandinsky data slot
+#' @param style character, define the final data format. Must be one between 'spots' (Visium) and 'bins' (Visium-HD)
+#' @param label character string specifying the variable name to be used to defne cell annotation groups
+#' @param bin_res numeric, Visium-HD bin resolution when `style` is set to 'bins'.
+#' @param nb.method spatial neighbour method to apply to the collapsed data. See `kandinsky_init` documentation
+#' @param k numeric, number of nearest neighbours to be set when 'nb.method = K'
+#' @param d.max numeric, maximum centroid distance threshold to be set when 'nb.method = C | M'
+#' @param soi boolean, whether or not filter Delaunay network to keep sphere of influence (SOI) graph. Default is FALSE
+#' @param layers numeric, number of concentric contiguous layers to include in spot neighbourhood. Only Applied when 'nb.method = Q'. Default is 1
+#' @returns a new Seurat object containing newly generated Visium/Visium-HD data and associated Kandinsky data
+#' @export
+visiumize = function(data=NULL,style=c('spots','bins'),label=NULL,bin_res=NULL,
+                     nb.method = c("Q", "C","D", "K", "M"),
+                     k = 20, d.max = 40, soi = F, layers = 1){
+  if(length(style)!=1){
+    style=NULL
+    warning('Setting "spots" as default visium style')
+  }
+  if(is.null(bin_res)){
+    if(style=='bins'){
+      warning('Setting default bin resolution to 16')
+    }
+    bin_res=bin_res %||% 16
+  }
+  style=style %||% 'spots'
+  #Create Visium/VisiumHD-like grid of spots/bins
+  if(style=='bins'){
+    grid = grid_visiumhd(data=data,res=bin_res)
+  }else{
+    grid = grid_visium(data=data)
+  }
+  grid$ID = rownames(grid)
+  max_n = max(as.numeric(grid$ID))
+  #Prepare cell/centroid polygons
+  if(style=='spots' | (style=='bins' & bin_res>=10)){
+    polys = sf::st_as_sf(sf::st_centroid(sf::st_geometry(KanData(data, "sf"))))
+  }else{
+    polys = sf::st_as_sf(sf::st_geometry(KanData(data, "sf")))
+  }
+  #Convert intersection list to sparse matrix https://github.com/r-spatial/sf/issues/1750
+  #idx = as.data.frame(sf::st_intersects(grid,polys))
+  idx = sf::st_within(polys, grid)
+  if(!is.null(label)){
+    point_class = data@meta.data[,label]
+    poly_id <- sapply(idx, function(x) {
+      if (length(x) == 0) NA_integer_ else x[1]
+    })
+    ct_mat <- as.matrix(table(
+      polygon = poly_id,
+      class = point_class
+    ))
+  }
+  nmat=Matrix::sparseMatrix(i = as.data.frame(idx)$col.id, j = as.data.frame(idx)$row.id, x = 1,dims=c(max_n,nrow(polys)))
+  #Matrix multiplication between gene expression counts and neigbour adjacency matrix
+  counts = LayerData(data,layer='counts')
+  ncounts = t(nmat %*% t(counts))
+  colnames(ncounts) = grid$ID
+  rownames(ncounts)= rownames(data)
+  ncounts = ncounts[,colSums(ncounts)>0] #Remove empty bins/spots to save space
+  #Create new Seurat object and Kandisky data
+  ncounts = CreateSeuratObject(counts=ncounts,project='spots',assay=DefaultAssay(data))
+  kandinsky = list()
+  kandinsky$platform = ifelse(style=='spots','visium','visium_hd')
+  grid[,c('x_centroid_um','y_centroid_um')] = sf::st_coordinates(sf::st_centroid(sf::st_geometry(grid)))
+  kandinsky$sf = grid[colnames(ncounts),]
+  if(length(nb.method) >1 ){
+    nb.method=NULL
+  }
+  nb.method = nb.method %||% "Q"
+  if (nb.method == "K") {
+    kandinsky$nb = knn_nb(kandinsky$sf, k = k)
+    kandinsky$nb.type = paste0("K_", k)
+  }else if (nb.method == "C") {
+    kandinsky$nb = centroid_nb(kandinsky$sf, d.max = d.max)
+    kandinsky$nb.type = paste0("C_", d.max)
+  }else if (nb.method == "D") {
+    kandinsky$nb = tri_nb(kandinsky$sf, soi = soi)
+    kandinsky$nb.type = paste0("D_", paste0("soi", soi))
+  }else if (nb.method == "M") {
+    kandinsky$nb = membrane_nb(kandinsky$sf, d.max = d.max)
+    kandinsky$nb.type = paste0("M_", d.max)
+  }else if (nb.method == "Q") {
+    kandinsky$nb = queen_nb(kandinsky$sf, 
+                            layers = layers, 
+                            snap = ifelse(style=='spots',(100* sqrt(3))/2,
+                                          bin_res * 0.51 * sqrt(2)))
+    kandinsky$nb.type = "Q"
+  }else {
+    stop("nb.method parameter must be either \"Q\", \"C\", \"D\", \"K\", or \"M\"")
+  }
+  kandinsky$img = NULL
+  kandinsky$spot_distance = ifelse(style=='spots',100,bin_res)
+  ncounts@tools$kandata = Kandinsky()
+  for (n in names(kandinsky)) {
+    KanData(ncounts, n) = kandinsky[[n]]
+  }
+  if(!is.null(label)){
+    ncounts@meta.data[,colnames(ct_mat)] = ct_mat[colnames(ncounts),]
+  }
+  message('Spatial dataset converted to ',ifelse(style=='spots','Visium format!','Visium-HD format!'))
+  return(ncounts)
+}
+
+

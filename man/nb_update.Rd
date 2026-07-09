@@ -6,6 +6,7 @@
 \usage{
 nb_update(
   seurat = NULL,
+  sample_key = NULL,
   nb.method = c("K", "C", "D", "M", "Q"),
   snap = NULL,
   layers = 1,
@@ -17,7 +18,9 @@ nb_update(
 \arguments{
 \item{seurat}{a Seurat object containing Kandinsky data slot}
 
-\item{nb.method}{character string specifying the method to be used to create a `nb` neighbour object.
+\item{sample_key}{character string specifying a variable stored in the Seurat object to use as sample/batch annotation. If not NULL, neighbour networks will be defined separately for each sample/batch. Default is NULL.}
+
+\item{nb.method}{character string specifying the method to be used to create a \code{nb} neighbour object.
 Must be one of the following:
 'Q': queen contiguity method,check for contact (not overlap) between any edge or side od two polygons (refers to the queen movement rule in chess). Currently only applicable for Visium/Visium-HD data
 'C': centroid-based method, use maximum centroid distance threshold to identify spot/cell neighbours
@@ -25,9 +28,9 @@ Must be one of the following:
 'K': KNN method, define k closest neighbours to each spot/cell
 'M': membrane-based method, check for the occurrence of a physical contact/intersection within a distance threshold between cell boundaries. Not applicable in the case of Visium spots.}
 
-\item{snap}{numeric, maximum accepted distance between Visium spots or Visium-HD bins to define contiguity relationships. Only Applied when `nb.method = Q`.}
+\item{snap}{numeric, maximum accepted distance between Visium spots or Visium-HD bins to define contiguity relationships. Only Applied when \code{nb.method = Q}.}
 
-\item{layers}{numeric, number of concentric contiguous layers to include in spot neighbourhood. Only Applied when `nb.method = Q`. Default is 1}
+\item{layers}{numeric, number of concentric contiguous layers to include in spot neighbourhood. Only Applied when \code{nb.method = Q}. Default is 1}
 
 \item{d.max}{numeric, maximum distance accepted between polygon centroids to define neighbour relation}
 

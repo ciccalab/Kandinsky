@@ -12,13 +12,13 @@ SlidePlot(
 )
 }
 \arguments{
-\item{seurat}{a Seurat object containing Kandinsky data (`KanData()`)}
+\item{seurat}{a Seurat object containing Kandinsky data (\code{KanData()})}
 
 \item{max.px}{numeric value indicating the number of image pixels to plot. Higher values will give a better resolution and a  heavier image size}
 
-\item{img_type}{type of raster image stored in Kandinsky data. Must be one of the following: `img`, `mask`}
+\item{img_type}{type of raster image stored in Kandinsky data. Must be one of the following: \code{img}, \code{mask}}
 
-\item{as.ggplot, }{boolean, whether returning a plot created with `tidyterra::geom_spatraster_rgb()` function (TRUE) or using `terra::plotRGB()` function}
+\item{as.ggplot, }{boolean, whether returning a plot created with \code{tidyterra::geom_spatraster_rgb()} function (TRUE) or using \code{terra::plotRGB()} function}
 }
 \value{
 Kandinsky image plot, as a base R plot (as.ggplot=F) or as a ggplot object (as.ggplot=T)

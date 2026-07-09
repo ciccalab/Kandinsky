@@ -37,20 +37,20 @@ he_mask(
 )
 }
 \arguments{
-\item{object}{a Seurat object containing Kandinsky data (`KanData()`) or an image of class `SpatRaster` created with the `terra` package}
+\item{object}{a Seurat object containing Kandinsky data (\code{KanData()}) or an image of class \code{SpatRaster} created with the \code{terra} package}
 
 \item{maxres}{numeric value indicating the ideal maximum pixel dimension accepted for Visium H&E image. If image size is bigger than this value, a scale factor will be applied to lower image pixel resolution/size up to the defined maximum value}
 
 \item{stretch}{boolean value, whether or not to apply a linear stretch to increase masked image contrast. Default is FALSE}
 
-\item{sd_thresh}{numeric value indicating the minimum RGB standard deviation accepted to keep an image pixel as part of the final tissue mask. Lower `sd_thresh` values will give more permissive filtering results.}
+\item{sd_thresh}{numeric value indicating the minimum RGB standard deviation accepted to keep an image pixel as part of the final tissue mask. Lower \code{sd_thresh} values will give more permissive filtering results.}
 
 \item{crop}{boolean value, whether or not to crop the final masked image}
 
-\item{crop_area}{bounding box coordinates to be used to crop masked image. If `crop = T` and `crop_area` is set to `NULL`, Visium spot coordinates will be used to automatically define the bounding box for cropping the image}
+\item{crop_area}{bounding box coordinates to be used to crop masked image. If \code{crop = T} and \code{crop_area} is set to \code{NULL}, Visium spot coordinates will be used to automatically define the bounding box for cropping the image}
 }
 \value{
-Seurat object with new 'masked_img' slot within the Kandinsky data if object is a Seurat object, or a masked `Spatraster` image
+Seurat object with new 'masked_img' slot within the Kandinsky data if object is a Seurat object, or a masked \code{Spatraster} image
 }
 \description{
 create a mask image to remove image background from Visium H&E images

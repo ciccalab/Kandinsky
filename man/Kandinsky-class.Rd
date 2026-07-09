@@ -13,13 +13,13 @@ Kandinsky is a list object storing spatial data and information for spatial tran
 \describe{
 \item{\code{platform}}{sequencing technology}
 
-\item{\code{nb}}{weighted neighbour list object created with the package`spdep`}
+\item{\code{nb}}{weighted neighbour list object created with the package\code{spdep}}
 
-\item{\code{sf}}{geometry data frame created with the package `sf` and containing cell/spot coordinates}
+\item{\code{sf}}{geometry data frame created with the package \code{sf} and containing cell/spot coordinates}
 
-\item{\code{nb.type}}{character indicating the neighbouring strategy used to initialize Kandinsky object. Must be one of the following: `Q`, `K`, `C`, `M`}
+\item{\code{nb.type}}{character indicating the neighbouring strategy used to initialize Kandinsky object. Must be one of the following: \code{Q}, \code{K}, \code{C}, \code{M}}
 
-\item{\code{nnMat}}{list object containing nearest neighbour matrix created with one of the `nnMat` functions implemented in Kandinsky}
+\item{\code{nnMat}}{list object containing nearest neighbour matrix created with one of the \code{nnMat} functions implemented in Kandinsky}
 
 \item{\code{spot_distance}}{numeric value indicating centroid-to-centroid distance between Visium spots or Visium HD bins}
 
@@ -27,10 +27,10 @@ Kandinsky is a list object storing spatial data and information for spatial tran
 
 \item{\code{tx}}{character string indicating the path for the transcript coordinates file from CoxMx/Xenium/Merscope platforms}
 
-\item{\code{fov_mask}}{geometry data frame created with the package `sf` and containing CosMx FOVs bounding box coordinates}
+\item{\code{fov_mask}}{geometry data frame created with the package \code{sf} and containing CosMx FOVs bounding box coordinates}
 
-\item{\code{img}}{Visium H&E or any other tissue slide image stored as a SpatRaster or SpatrasterCollection object via the package `terra`}
+\item{\code{img}}{Visium H&E or any other tissue slide image stored as a SpatRaster or SpatrasterCollection object via the package \code{terra}}
 
-\item{\code{mask}}{masked H&E image obtained via the Kandinsky function `he_mask` and stored as a SpatRaster or SpatrasterCollection object via the package `terra`}
+\item{\code{mask}}{masked H&E image obtained via the Kandinsky function \code{he_mask} and stored as a SpatRaster or SpatrasterCollection object via the package \code{terra}}
 }}
 

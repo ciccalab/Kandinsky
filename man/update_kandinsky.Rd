@@ -12,13 +12,13 @@ update_kandinsky(seurat = NULL)
 \S4method{update_kandinsky}{Seurat}(seurat = NULL)
 }
 \arguments{
-\item{seurat}{a Seurat object containing Kandinsky data (`KanData()`)}
+\item{seurat}{a Seurat object containing Kandinsky data (\code{KanData()})}
 }
 \value{
 Seurat object with updated Kandinsky data
 }
 \description{
 data objects included in the KanData slots based on the real Seurat object.
-By default Kandinsky data will not be subsetted together with Seurat during normal filtering steps using `subset()` or row/column names subset (e.g. `seurat[,ids]`).
-Use `update_kandinsky()` to check and fix discrepancies between Seurat and KanData cell/spot ids
+By default Kandinsky data will not be subsetted together with Seurat during normal filtering steps using \code{subset()} or row/column names subset (e.g. \code{seurat[,ids]}).
+Use \code{update_kandinsky()} to check and fix discrepancies between Seurat and KanData cell/spot ids
 }

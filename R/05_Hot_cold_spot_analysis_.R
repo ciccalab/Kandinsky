@@ -42,7 +42,12 @@ hotspot_analysis = function(seurat=NULL,feature=NULL,layer='data',sim=999,padj.t
   colnames(gi) = c('Gi','padj')
   gi = gi %>% dplyr::mutate(cluster = ifelse(.data[["Gi"]] > 0 & .data[["padj"]] < padj.thresh,'Hot',
                                       ifelse(.data[["Gi"]] <0 & .data[["padj"]] < padj.thresh,'Cold','NS')))
-  gi[is.na(gi$cluster),]$cluster='NS'
+  
+  # gi[is.na(gi$cluster),]$cluster='NS'
+  if (any(is.na(gi$cluster))) {
+      gi[is.na(gi$cluster), ]$cluster = "NS"
+    }
+  
   gi$cluster = factor(gi$cluster,levels=c('Cold','Hot','NS'))
   #hotspot=as.character(spdep::hotspot(gi,Prname='Pr(z != E(Gi)) Sim',cutoff=padj.thresh))
   #hotspot[is.na(hotspot)]='NS'

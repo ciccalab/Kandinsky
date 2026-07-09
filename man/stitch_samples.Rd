@@ -22,9 +22,9 @@ stitch_samples(
 
 \item{sample.id}{character string specifying the name of the column storing sample identifiers}
 
-\item{max_rows}{numeric, maximum number of samples to be disposed on a same column of the final sample grid. If set to `NULL`, maximum number of rows will be automatically calculated to obtain a square grid}
+\item{max_rows}{numeric, maximum number of samples to be disposed on a same column of the final sample grid. If set to \code{NULL}, maximum number of rows will be automatically calculated to obtain a square grid}
 
-\item{max_cols}{numeric, maximum number of samples to be disposed on a same row of the final sample grid. If set to `NULL`, maximum number of columns will be automatically calculated to obtain a square grid}
+\item{max_cols}{numeric, maximum number of samples to be disposed on a same row of the final sample grid. If set to \code{NULL}, maximum number of columns will be automatically calculated to obtain a square grid}
 }
 \value{
 data frame object with new stitched 'x_global' and 'y_global' coordinate columns

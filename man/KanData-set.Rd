@@ -9,7 +9,7 @@ KanData(object, which = NULL) <- value
 \arguments{
 \item{object}{Seurat or Kandinsky object}
 
-\item{which}{name of Kandinksy slots to extract. If `NULL`, all Kandinsky data will be extracted}
+\item{which}{name of Kandinksy slots to extract. If \code{NULL}, all Kandinsky data will be extracted}
 
 \item{value}{object or variable to assign to the selected Kandinksy slot}
 }

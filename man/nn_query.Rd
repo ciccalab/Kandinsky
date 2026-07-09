@@ -15,12 +15,12 @@ nn_query(
 )
 }
 \arguments{
-\item{data}{a neighbour matrix (nnMat) created with `knnMat`/`rnnMat`/`tnnMat` or a Seurat object with nb matrix stored as a KanData slot}
+\item{data}{a neighbour matrix (nnMat) created with \code{knnMat}/\code{rnnMat}/\code{tnnMat} or a Seurat object with nb matrix stored as a KanData slot}
 
 \item{query}{boolean string specifying the filtering criteria to annotate single cells. numerical and logical operator can be used.
 Specify conditions as you were calling dplyr filter() function.
 Please note that only information already included in the nb matrix can be considered for the query.
-If you are planning to query your matrix using column with a numeric column name, e.g. 0/1/2/3..., specify the name of that column with backticks to avoid wrong numeric comparisons (e.g., 1 >= 1 will give a positive outcome independently on the values stored in the `1` column)}
+If you are planning to query your matrix using column with a numeric column name, e.g. 0/1/2/3..., specify the name of that column with backticks to avoid wrong numeric comparisons (e.g., 1 >= 1 will give a positive outcome independently on the values stored in the \code{1} column)}
 
 \item{anno_name}{character string indicating the name that will be used to store the output annotation as a column in the neighbour matrix and in Seurat meta.data}
 
@@ -28,9 +28,9 @@ If you are planning to query your matrix using column with a numeric column name
 
 \item{label}{name of variable to use for selecting cell type of interest to perform differential expression}
 
-\item{which}{cell type label(s) to select from `label` variable}
+\item{which}{cell type label(s) to select from \code{label} variable}
 
-\item{...}{other arguments from FindMarkers() function passed to method when `diffexpr` is set to TRUE}
+\item{...}{other arguments from FindMarkers() function passed to method when \code{diffexpr} is set to TRUE}
 }
 \value{
 indexed character vector with the new annotation for all single cells. Cells not respecting the query conditions will be labelled as 'N', while cells filtered through the query will be labelled as 'Y'

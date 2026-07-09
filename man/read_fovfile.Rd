@@ -12,7 +12,7 @@ read_fovfile(fov_path = NULL, buffer = 255, fov_ids = NULL)
 \item{buffer}{numeric value (micrometers) indicating the radial expansion that will be applied to FOV centroid to reconstruct the FOV full size polygon.
 It should not be modified, as this is the correct parameter to get the standard CosMx FOV size,}
 
-\item{fov_ids}{vector of FOV identifier to be considered for the final polygon output. If set to `NULL`, all the FOVs reported in the input file will be used}
+\item{fov_ids}{vector of FOV identifier to be considered for the final polygon output. If set to \code{NULL}, all the FOVs reported in the input file will be used}
 }
 \value{
 a sf data frame containing a geometry column with all FOV polygon coordinates

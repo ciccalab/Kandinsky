@@ -1,4 +1,4 @@
-#' @importFrom ggplot2 ggplot theme_void geom_point geom_sf geom_text geom_tile geom_density annotate theme scale_fill_manual scale_fill_gradientn scale_fill_gradient2 scale_y_reverse guides guide_axis labs aes element_line element_rect element_text element_blank theme_classic theme_minimal stat_density2d_filled scale_color_manual after_stat guide_colorbar guide_legend vars facet_wrap ggtitle geom_bar scale_color_gradientn coord_fixed scale_size_continuous
+#' @importFrom ggplot2 ggplot theme_void geom_point geom_sf geom_text geom_tile geom_density annotate theme scale_size_continuous scale_fill_manual scale_fill_gradientn scale_fill_gradient2 scale_y_reverse guides guide_axis labs aes element_line element_rect element_text element_blank theme_classic theme_minimal stat_density2d_filled scale_color_manual after_stat guide_colorbar guide_legend vars facet_wrap ggtitle geom_bar
 NULL
 
 #color palettes for categorical data
@@ -7,7 +7,7 @@ NULL
 #' C24 discrete color palette
 #'
 #' 24-color palette to apply to categorical data
-#' @format ## `c24`
+#' @format a vector of 24 colour identifiers
 #' @export
 c24 <- c(
   'dodgerblue2', '#E31A1C', # red
@@ -28,7 +28,7 @@ c24 <- c(
 #' C12 discrete color palette
 #'
 #' 12-color palette to apply to categorical data
-#' @format ## `c12`
+#' @format a vector of 12 colour identifiers
 #' @export
 c12 <- c('#88CCEE','#CC6677','#DDCC77','#117733',
          '#332288','#AA4499','#44AA99','#999933',
@@ -117,8 +117,14 @@ KanPlot = function(seurat = NULL,feature = NULL,fovs=NULL,
     }else{
       levels = sort(unique(sf::st_drop_geometry(KanData(seurat,'sf'))[[feature]]))
     }
-    cols = palette[seq_len(length(levels))]
-    names(cols) = levels
+    if(is.null(names(palette))| any(!(levels %in% names(palette)))){
+	    warning('At least 1 feature level is not included in the current colour palette. 
+		    Renaming palette according to feature levels.')
+		    cols = palette[seq_len(length(levels))]
+		    names(cols) = levels
+    }else{
+	    cols = palette
+    }
   }else{
     palette = palette_cont
     #vals = quantile(KanData(seurat,'sf')[[feature]],c(0.01,0.05,0.1,0.25,0.5,0.75,0.9,0.95,0.99))
@@ -184,16 +190,16 @@ KanPlot = function(seurat = NULL,feature = NULL,fovs=NULL,
   }
   if(!inherits(KanData(seurat,'sf')$geometry,'sfc_POINT') | pt.shape==21){
     if(is.numeric(sf::st_drop_geometry(KanData(seurat,'sf'))[,feature]) == F){
-      g = g + scale_fill_manual(values = cols) + labs(fill=feature)
+      g = g + ggplot2::scale_fill_manual(values = cols) + labs(fill=feature)
     }else{
-      g = g + scale_fill_gradientn(colours=palette,na.value=palette[length(palette)],limits=c(minval,maxval))+ labs(fill = feature)
+      g = g + ggplot2::scale_fill_gradientn(colours=palette,na.value=palette[length(palette)],limits=c(minval,maxval))+ labs(fill = feature)
     }
   }
   if(inherits(KanData(seurat,'sf')$geometry,'sfc_POINT') & pt.shape==16){
     if(is.numeric(sf::st_drop_geometry(KanData(seurat,'sf'))[,feature]) == F){
-      g = g + scale_color_manual(values = cols) + labs(color=feature)
+      g = g + ggplot2::scale_color_manual(values = cols) + labs(color=feature)
     }else{
-      g = g + scale_color_gradientn(colours=palette,na.value=palette[length(palette)],limits=c(minval,maxval))+ labs(color = feature)
+      g = g + ggplot2::scale_color_gradientn(colours=palette,na.value=palette[length(palette)],limits=c(minval,maxval))+ labs(color = feature)
     }
     }
   if(is.numeric(sf::st_drop_geometry(KanData(seurat,'sf'))[[feature]]) ==F){
@@ -414,7 +420,7 @@ ResidualPlot = function(seurat=NULL,var.1=NULL,var.2=NULL,limits=c(-20,20),pval 
   g = ggplot(chisq,aes(x=.data[[var.1]],y=.data[[var.2]],fill=.data[["value"]]))+
     theme_classic()+geom_tile(color='black')+theme(axis.text.x=element_text(angle=45,hjust=1),axis.text=element_text(color='black'),
                                                    axis.line = element_blank(),axis.ticks = element_blank())+
-    labs(fill='Std. residuals')+labs(x=var.1,y=var.2)+coord_fixed(ratio = 1)
+    labs(fill='Std. residuals')+labs(x=var.1,y=var.2)+ggplot2::coord_fixed(ratio = 1)
     if(pval ==T){
       if(alternative=='greater'){
         g= g+scale_fill_gradient2(low='white',high='red',midpoint=0,limits=limits, oob = scales::squish)
@@ -465,7 +471,7 @@ EnrichPlots = function(seurat=NULL,var.1=NULL,var.2=NULL,limits=c(-20,20),cols=N
 #' @returns density plot of cell/spot neighbourhood sizes
 #' @export
 nbSizePlot = function(seurat){
-  tot_nb = data.frame(size = Matrix::colSums(as(KanData(seurat,'nb'),'CsparseMatrix')))
+  tot_nb = data.frame(size = Matrix::rowSums(as(KanData(seurat,'nb'),'CsparseMatrix')))
   labels = unique(c(min(tot_nb$size),median(tot_nb$size),max(tot_nb$size)))
   ggplot(tot_nb,aes(y=.data[["size"]]))+theme_classic()+geom_density()+scale_y_reverse(breaks=(labels),labels=(labels))+
     annotate('segment',x=0,xend= max(density(tot_nb$size)$y), y= median(tot_nb$size),yend=median(tot_nb$size),linetype='dashed',color='red')+theme(axis.text.x=element_blank(),axis.line.x=element_blank(),axis.ticks.x = element_blank())+

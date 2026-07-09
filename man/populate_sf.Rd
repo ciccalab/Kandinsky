@@ -13,18 +13,18 @@ populate_sf(
 )
 }
 \arguments{
-\item{seurat}{a Seurat object containing Kandinsky data (`KanData()`)}
+\item{seurat}{a Seurat object containing Kandinsky data (\code{KanData()})}
 
-\item{vars}{character vector containing variable names stored in Seurat object to be copied into the KanData `sf` object}
+\item{vars}{character vector containing variable names stored in Seurat object to be copied into the KanData \code{sf} object}
 
 \item{assay}{name of the Seurat assay to be used to search for variables of interest}
 
 \item{layer}{name of the Seurat layer to be used to search for variables of interest}
 
-\item{return.seurat}{boolean, set to FALSE by default. It indicates whether returning Seurat object with updated KanData `sf` containing the new variables (TRUE), or the updated KanData `sf` object only}
+\item{return.seurat}{boolean, set to FALSE by default. It indicates whether returning Seurat object with updated KanData \code{sf} containing the new variables (TRUE), or the updated KanData \code{sf} object only}
 }
 \value{
-if return.seurat is set to TRUE, a Seurat object with updated KanData `sf` containing the new variables. if return.seurat is set to FALSE, only the updated KanData `sf` object will be returned
+if return.seurat is set to TRUE, a Seurat object with updated KanData \code{sf} containing the new variables. if return.seurat is set to FALSE, only the updated KanData \code{sf} object will be returned
 }
 \description{
 Add information to the Kandinsky 'sf' slot. Based on Seurat::FetchData function

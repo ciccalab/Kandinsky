@@ -14,13 +14,13 @@ global_univ_spatcor(
 )
 }
 \arguments{
-\item{seurat}{a Seurat object containing Kandinsky data (`KanData()`)}
+\item{seurat}{a Seurat object containing Kandinsky data (\code{KanData()})}
 
 \item{var}{character string or vector specifying the variable(s) to use to compute Moran's I statistics}
 
 \item{sim}{number of Monte Carlo simulations to be run for estimating Moran coefficients significance}
 
-\item{lag}{integer value indicating the extent of cell/spot neighbours to be considered to calculate Moran statistics. `lag = 1` indicates that only 1st order neighbours will be considered, while `lag=2` indicates that all neighbours of each 1st order neighbour will be also considered for each spot/cell, and so on.}
+\item{lag}{integer value indicating the extent of cell/spot neighbours to be considered to calculate Moran statistics. \code{lag = 1} indicates that only 1st order neighbours will be considered, while \code{lag=2} indicates that all neighbours of each 1st order neighbour will be also considered for each spot/cell, and so on.}
 
 \item{alt}{a character string specifying the alternative hypothesis, Must be one of the following: "two.sided", "greater" (default), or "less".}
 

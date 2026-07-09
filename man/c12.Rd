@@ -5,7 +5,7 @@
 \alias{c12}
 \title{C12 discrete color palette}
 \format{
-## `c12`
+a vector of 12 colour identifiers
 }
 \usage{
 c12

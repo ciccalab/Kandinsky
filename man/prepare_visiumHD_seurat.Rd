@@ -17,11 +17,11 @@ prepare_visiumHD_seurat(
 
 \item{dataset.id}{character string that will be used to name the output Seurat object identity}
 
-\item{img.res}{character string specifying which version of H&E Visium image will be loaded into the Seurat data. Must be one of the following: `low`, `high`, `full`, where `full` refers to the original H&E full-resolution tiff image. If set to `full`, lowres image will be loaded into Seurat, but the path to the full res tif image will be also stored in the final object.}
+\item{img.res}{character string specifying which version of H&E Visium image will be loaded into the Seurat data. Must be one of the following: \code{low}, \code{high}, \code{full}, where \code{full} refers to the original H&E full-resolution tiff image. If set to \code{full}, lowres image will be loaded into Seurat, but the path to the full res tif image will be also stored in the final object.}
 
-\item{fullres_path}{character string specifying the path to the Visium full resolution H&E tif image. The full image path will be stored into the final Seurat object when `img.res` is set to `full`, and will be used by `Kandinsky` functions for downstream analyses}
+\item{fullres_path}{character string specifying the path to the Visium full resolution H&E tif image. The full image path will be stored into the final Seurat object when \code{img.res} is set to \code{full}, and will be used by \code{Kandinsky} functions for downstream analyses}
 
-\item{binsize}{numeric vector specifying the binsize(s) to be used to build the Seurat object. Can be any combination of `2`, `8`, and `16` sizes}
+\item{binsize}{numeric vector specifying the binsize(s) to be used to build the Seurat object. Can be any combination of \code{2}, \code{8}, and \code{16} sizes}
 }
 \value{
 a Seurat object containing Visium count matrix, metadata, and additional files/file paths to be used for downstream analysis with Kandinsky functions

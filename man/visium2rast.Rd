@@ -15,19 +15,19 @@ visium2rast(
 \arguments{
 \item{seurat}{a Seurat object containing Visium/Visium-HD data}
 
-\item{img_path}{character string indicating the path of the H&E image to be used for Visium/VisiumHD. If set to `NULL`, no image is loaded and stored in Seurat object}
+\item{img_path}{character string indicating the path of the H&E image to be used for Visium/VisiumHD. If set to \code{NULL}, no image is loaded and stored in Seurat object}
 
-\item{rm_old_img}{boolean, whether or not removing any Image object already loaded in the Seurat object (`Images()`)}
+\item{rm_old_img}{boolean, whether or not removing any Image object already loaded in the Seurat object (\code{Images()})}
 
-\item{return.seurat}{boolean, whether returning the input Seurat file with the nb object stored in the `misc` slot (`TRUE`) or the nb object alone (`FALSE`). Default value is `TRUE`}
+\item{return.seurat}{boolean, whether returning the input Seurat file with the nb object stored in the \code{misc} slot (\code{TRUE}) or the nb object alone (\code{FALSE}). Default value is \code{TRUE}}
 
 \item{max_dim}{numeric value indicating the ideal maximum pixel dimension accepted for Visium H&E image. If image size is bigger than this value, a scale factor will be applied to lower image pixel resolution/size up to the defined maximum value}
 }
 \value{
-Seurat object with the new raster image stored in the `misc` slot or the raster image alone, depending on the `return.seurat` parameter
+Seurat object with the new raster image stored in the \code{misc} slot or the raster image alone, depending on the \code{return.seurat} parameter
 }
 \description{
-Create a SpatRaster object (package `terra`) using Visium image file
+Create a SpatRaster object (package \code{terra}) using Visium image file
 }
 \details{
 This function will use Visium H&E image file to create a SpatRaster image for downstream analysis and visualization.

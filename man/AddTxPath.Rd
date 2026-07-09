@@ -7,12 +7,12 @@
 AddTxPath(seurat, path)
 }
 \arguments{
-\item{seurat}{a Seurat object containing Kandinsky data (`KanData()`)}
+\item{seurat}{a Seurat object containing Kandinsky data (\code{KanData()})}
 
 \item{path}{character string indicating the path for the transcript coordinates file from CoxMx/Xenium/Merscope platforms}
 }
 \value{
-Seurat object with new `tx` slot added to Kandinsky data
+Seurat object with new \code{tx} slot added to Kandinsky data
 }
 \description{
 Add the full path of CosMx/Xenium/Merscope transcript csv data to Kandinsky data

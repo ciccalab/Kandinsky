@@ -13,24 +13,24 @@ GetTxData(
 )
 }
 \arguments{
-\item{seurat}{a Seurat object containing Kandinsky data (`KanData()`)}
+\item{seurat}{a Seurat object containing Kandinsky data (\code{KanData()})}
 
-\item{features}{character vector indicating genes/probes to select from the list of transcript. If `NULL`, no filter will be applied on genes/probes}
+\item{features}{character vector indicating genes/probes to select from the list of transcript. If \code{NULL}, no filter will be applied on genes/probes}
 
-\item{fovs}{character vector indicating the identifiers of fields of view (FOVs) of interest.  If `NULL`, no filter will be applied on FOVs}
+\item{fovs}{character vector indicating the identifiers of fields of view (FOVs) of interest.  If \code{NULL}, no filter will be applied on FOVs}
 
-\item{cells}{character vector indicating the identifiers of the single cells of interest.  If `NULL`, no filter will be applied on single cell identifiers}
+\item{cells}{character vector indicating the identifiers of the single cells of interest.  If \code{NULL}, no filter will be applied on single cell identifiers}
 
-\item{tx_path}{character string indicating the path for the transcript coordinates file from CoxMx/Xenium/Merscope platforms. If `NULL`, the function will expect to find the file path stored within the `tx` Kandinsky data slot}
+\item{tx_path}{character string indicating the path for the transcript coordinates file from CoxMx/Xenium/Merscope platforms. If \code{NULL}, the function will expect to find the file path stored within the \code{tx} Kandinsky data slot}
 }
 \value{
 data frame containing the rows selected from the input transcript file
 }
 \description{
-Load and query CosMx/Xenium/Merscope transcript files as `arrow` datasets
+Load and query CosMx/Xenium/Merscope transcript files as \code{arrow} datasets
 }
 \details{
-Transcript files are queried and filtered using `arrow` and `dplyr` functionalities to reduce the memory requirements
+Transcript files are queried and filtered using \code{arrow} and \code{dplyr} functionalities to reduce the memory requirements
 even in the case of datasets with hundreds of millions of transcripts. In the current version,
 transcript files can be filtered according to cell identifiers, fov identifiers, and genes/probes of interest.
 }

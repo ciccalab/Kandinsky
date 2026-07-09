@@ -12,7 +12,7 @@ readKanData(file = NULL, with.seurat = T)
 \arguments{
 \item{file}{character string specifying the path to the file where Seurat or Kandinsky object is stored. It must be in .rds format}
 
-\item{with.seurat}{boolean, whether loading the whole Seurat object together with Kandinsky data (`TRUE`) or Kandinsky data alone (`FALSE`). Default value is set to `TRUE`. Ignored when input file contains only a Kandinsky object}
+\item{with.seurat}{boolean, whether loading the whole Seurat object together with Kandinsky data (\code{TRUE}) or Kandinsky data alone (\code{FALSE}). Default value is set to \code{TRUE}. Ignored when input file contains only a Kandinsky object}
 }
 \description{
 readRDS adaptation for Kandinsky data. it can save Kandinsky data alone or as part of a Seurat object

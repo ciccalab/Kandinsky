@@ -9,18 +9,18 @@ smi2sf(seurat = NULL, poly_file = NULL, id = "cell_ID", return.seurat = F)
 \arguments{
 \item{seurat}{a Seurat object containing CosMx data}
 
-\item{poly_file}{character string indicating the path for the polygon coordinates file. This parameter is ignored if Seurat object has been created using the function `prepare_cosmx_seurat()`}
+\item{poly_file}{character string indicating the path for the polygon coordinates file. This parameter is ignored if Seurat object has been created using the function \code{prepare_cosmx_seurat()}}
 
 \item{id}{name of the variable to use as single cell identifier}
 
-\item{return.seurat}{boolean, whether returning the input Seurat file with the sf object stored in the Kandinsky `sf` slot or Seurat `misc` slot (`TRUE`) or the nb object alone (`FALSE`). Default value is `TRUE`}
+\item{return.seurat}{boolean, whether returning the input Seurat file with the sf object stored in the Kandinsky \code{sf} slot or Seurat \code{misc} slot (\code{TRUE}) or the nb object alone (\code{FALSE}). Default value is \code{TRUE}}
 }
 \value{
-Seurat object with the new sf object stored in the `misc` slot, or in the Kandinsky `sf` slot, or the sf object alone, depending on the `return.seurat` parameter
+Seurat object with the new sf object stored in the \code{misc} slot, or in the Kandinsky \code{sf} slot, or the sf object alone, depending on the \code{return.seurat} parameter
 }
 \description{
-Create a sf data frame object (package `sf`) using CosMx cell coordinates
+Create a sf data frame object (package \code{sf}) using CosMx cell coordinates
 }
 \details{
-This function will use CosMx cell boundary coordinates  to create cell polygon geometries using the R package `sf`
+This function will use CosMx cell boundary coordinates  to create cell polygon geometries using the R package \code{sf}
 }

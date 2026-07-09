@@ -28,7 +28,7 @@ KanPlot(
 )
 }
 \arguments{
-\item{seurat}{a Seurat object containing Kandinsky data (`KanData()`)}
+\item{seurat}{a Seurat object containing Kandinsky data (\code{KanData()})}
 
 \item{feature}{character string specifying the discrete or continuous variable to plot}
 
@@ -38,7 +38,7 @@ KanPlot(
 
 \item{layer}{the name of Seurat layer to use to search for the feature to plot}
 
-\item{palette_cont}{character string or vector specifying the color palette to use for continuous variables. It can be a vector of color names, or the name of a `viridis` palette}
+\item{palette_cont}{character string or vector specifying the color palette to use for continuous variables. It can be a vector of color names, or the name of a \code{viridis} palette}
 
 \item{palette_discrete}{character string or vector specifying the color palette to use for discrete variables.}
 
@@ -46,19 +46,19 @@ KanPlot(
 
 \item{show_border}{boolean, whether plotting (TRUE) or not (FALSE) polygon borders.}
 
-\item{border.size}{numeric, polygon border thickness passed to `lwd` parameter of geom_sf() function when `show_border` is set to TRUE. If not specified, default value is set to 0.01}
+\item{border.size}{numeric, polygon border thickness passed to \code{lwd} parameter of geom_sf() function when \code{show_border} is set to TRUE. If not specified, default value is set to 0.01}
 
-\item{border.col}{color of polygon borders when `show_border` is set to TRUE.}
+\item{border.col}{color of polygon borders when \code{show_border} is set to TRUE.}
 
 \item{max.cap}{numeric value between 0 and 1 specifying the higher percentile cutoff value for continuous variables. Default value is set to 0.99}
 
 \item{bg_img}{boolean, whether plotting (TRUE) or not (FALSE) any image associated with Kandinsky data, like Visium H&E image,in the plot background.}
 
-\item{bg_type}{image type to be plotted in the background when `bg_img = TRUE`. Must be one of the following: `img`, `mask`.}
+\item{bg_type}{image type to be plotted in the background when \code{bg_img = TRUE}. Must be one of the following: \code{img}, \code{mask}.}
 
-\item{max.px}{numeric value indicating the number of pixels to plot from the background image, when `bg_img = TRUE`. higher values will give a better resolution and a  heavier image size}
+\item{max.px}{numeric value indicating the number of pixels to plot from the background image, when \code{bg_img = TRUE}. higher values will give a better resolution and a  heavier image size}
 
-\item{theme}{color style of the plot background and text. Must one of the following: `dark`, `light`.}
+\item{theme}{color style of the plot background and text. Must one of the following: \code{dark}, \code{light}.}
 
 \item{pt.shape}{numeric, shape to apply to point geometries. Must be one of the following: 16 (no border), 21 (with border, default)}
 

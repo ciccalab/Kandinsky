@@ -7,7 +7,7 @@
 get_visium_textures(visium, aggr.factor = 15, is.hd = F)
 }
 \arguments{
-\item{visium}{a Visium Seurat object containing Kandinsky data (`KanData()`)}
+\item{visium}{a Visium Seurat object containing Kandinsky data (\code{KanData()})}
 
 \item{aggr.factor}{numeric argument indicating how many raster cells consider to average RGB intensity and lower raster resolution.}
 
@@ -21,7 +21,7 @@ Update Seurat object with a new 'texture' dataframe containing GLCM texture feat
 Gray-level co-occurrence matrix (GLCM) texture metrics extraction from Visium H&E image
 }
 \details{
-Use the `GLCMTextures` package to extract and summarise GLCM texture features for each tissue spot in the Visium dataset.
+Use the \code{GLCMTextures} package to extract and summarise GLCM texture features for each tissue spot in the Visium dataset.
 Since GLCM texture extraction works with single-layer rasters, the function will extract texture features separately for each
 R/G/B raster layer, plus a fourth created by calculating the cell-wise standard deviation across the three RGB layers.
 For more information about GLCM texture extraction, see https://github.com/ailich/GLCMTextures

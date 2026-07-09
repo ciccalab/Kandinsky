@@ -1,5 +1,5 @@
 #' @importFrom methods setClass setClassUnion setMethod is slotNames slot slot<- new as show getClass
-#' @importFrom stats sd quantile kmeans relevel median dist density na.omit chisq.test p.adjust
+#' @importFrom stats sd quantile cor kmeans relevel median dist density na.omit chisq.test p.adjust
 #' @importFrom rlang .data
 #' @importClassesFrom terra SpatRaster SpatRasterCollection
 #' @importClassesFrom Matrix CsparseMatrix ddiMatrix
@@ -94,6 +94,7 @@ setGeneric(name = "he_mask", def = function(object,maxres=2000,stretch=F,sd_thre
 
 if (requireNamespace("terra", quietly = TRUE)) {
   PackedSpatRaster = getClass('PackedSpatRaster',where=asNamespace('terra'))
+  PackedSpatRasterDC = try(getClass("PackedSpatRasterDC", where=asNamespace('terra')),silent=T)
 }
 
 
@@ -110,9 +111,16 @@ if (requireNamespace("terra", quietly = TRUE)) {
 PackedSpatRaster = function() {
   suppressWarnings({
     if (requireNamespace("terra", quietly = TRUE)) {
-      PackedSpatRaster = getClass('PackedSpatRaster',where=asNamespace('terra'))
+	    PackedSpatRaster = getClass('PackedSpatRaster',where=asNamespace('terra'))
+	    #Check for more recent PackedSpatRasterDC object class
+	    PackedSpatRasterDC = try(getClass("PackedSpatRasterDC", where=asNamespace('terra')),silent=T)
+
     }
-    setClassUnion("KanImg",c("NULL","SpatRaster","SpatRasterCollection",PackedSpatRaster@className))
+    class_list = c("NULL","SpatRaster","SpatRasterCollection",PackedSpatRaster@className)
+    if(!inherits(PackedSpatRasterDC, "try-error")){
+	    class_list = c(class_list,PackedSpatRasterDC@className)
+    }
+    setClassUnion("KanImg",class_list)
   })
 }
 
@@ -421,94 +429,124 @@ setMethod(f='he_mask',signature = c('SpatRaster'),
 
 
 ###TO OPTIMIZE, I DON'T HOW IT SHOULD WORK EXACTLY....
-mergeKanData = function(seurat.list){
-  nsamples = length(seurat.list)
-  ids = names(seurat.list)
-  dim = ceiling(sqrt(nsamples))
-  slots = c('nb','sf','listw','img','mask','texture')
-  #merge sf
-  sf = list()
-  for(n in 1:nsamples){
-    if(!is.null(KanData(seurat.list[[n]],'sf'))){
-      sf[[n]] = KanData(seurat.list[[n]],'sf')
-      sf[[n]]$kan_id = paste0(rownames(sf[[n]]),"_",ids[n])
-    }
-  }
-  if(length(sf) > 0){
-    sf = purrr::reduce(sf,'rbind')
-  }else{sf = NULL}
-
-  #merge listw and create nb objects
-  listw = list()
-  listw_ids = c()
-  for(n in 1:nsamples){
-    if(!is.null(KanData(seurat.list[[n]],'listw'))){
-      listw[[n]] = as(KanData(seurat.list[[n]],'listw'),'CsparseMatrix')
-      listw_ids = c(listw_ids,paste0(rownames(listw[[n]]),"_",ids[n]))
-    }
-  }
-  if(length(listw) > 0){
-    merged_listw = Matrix::bdiag(listw)
-    rownames(merged_listw) = listw_ids
-    colnames(merged_listw) = listw_ids
-    merged_listw = spdep::mat2listw(merged_listw,row.names = listw_ids,style='B',zero.policy=T)
-    nb = merged_listw[[2]]
-  }else{
-    listw = NULL
-    nb = NULL
-  }
-
-  img = list()
-  imgnames = c()
-  for(n in 1:nsamples){
-    if(!is.null(KanData(seurat.list[[n]],'img'))){
-      img[[n]] = KanData(seurat.list[[n]],'img')
-      imgnames = c(imgnames,ids[n])
-    }
-  }
-  if(length(img) > 0){
-    img = terra::sprc(img)
-    names(img) = imgnames
-  }else{img = NULL}
-
-  mask = list()
-  masknames = c()
-  for(n in 1:nsamples){
-    if(!is.null(KanData(seurat.list[[n]],'mask'))){
-      mask[[n]] = KanData(seurat.list[[n]],'mask')
-      masknames = c(masknames,ids[n])
-    }
-  }
-  if(length(mask) > 0){
-    mask = terra::sprc(mask)
-    names(mask) = masknames
-  }else{mask = NULL}
-
-  texture = list()
-  for(n in 1:nsamples){
-    if(!is.null(KanData(seurat.list[[n]],'texture'))){
-      texture[[n]] = KanData(seurat.list[[n]],'texture')
-      texture[[n]]$kan_id = paste0(rownames(texture[[n]]),"_",ids[n])
-    }
-  }
-  if(length(texture) > 0){
-    texture = purrr::reduce(texture,rbind)
-  }else{texture = NULL}
-
-  kandinsky = list(
-    nb = nb,
-    sf = sf,
-    listw = merged_listw,
-    img = img,
-    mask = mask,
-    texture=texture
-  )
-  return(kandinsky)
-}
-
-as.kandinsky = function(list){
-
-}
+#mergeKanData = function(seurat.list,ids=NULL){
+#  nsamples = length(seurat.list)
+#  ids = ids %||% names(seurat.list)
+#  dim = ceiling(sqrt(nsamples))
+#  slots = unique(unlist(lapply(seurat.list,function(x){slotNames(Kandata(x))})))
+#  kandata = Kandinsky()
+#  platform = c()
+#  for(n in 1:n(samples)){
+#	if(!is.null(KanData(seurat.list[[n]],'platform'))){
+#		platform[n] = KanData(seurat.list[[n]],'platform')
+#		names(platform)[n] = ids[n]
+#	}
+#  }
+#  slot(kandata,'platform') = platform
+#  nb.type = c()
+#  for(n in 1:n(samples)){
+#	if(!is.null(KanData(seurat.list[[n]],'nb.type'))){
+#		nb.type[n] = KanData(seurat.list[[n]],'nb.type')
+#		names(nb.type)[n] = ids[n]
+#	}
+#  }
+#  slot(kandata,'nb.type') = nb.type
+#  spot_distance = c()
+#  for(n in 1:n(samples)){
+#	if(!is.null(KanData(seurat.list[[n]],'spot_distance'))){
+#		spot_distance[n] = KanData(seurat.list[[n]],'spot_distance')
+#		names(spot_distance)[n] = ids[n]
+#	}
+#  }
+#  slot(kandata,'spot_distance') = spot_distance
+#  tx = c()
+#  for(n in 1:n(samples)){
+#	if(!is.null(KanData(seurat.list[[n]],'tx'))){
+#		tx[n] = KanData(seurat.list[[n]],'tx')
+#		names(tx)[n] = ids[n]
+#	}
+#  }
+#  slot(kandata,'tx') = tx
+#  #merge sf
+#  sf = list()
+#  for(n in 1:nsamples){
+#    if(!is.null(KanData(seurat.list[[n]],'sf'))){
+#      sf[[n]] = KanData(seurat.list[[n]],'sf')
+#      sf[[n]]$kan_id = paste0(ids[n],"_",rownames(sf[[n]]))
+#      rownames(sf[[n]]) = sf[[n]]$kan_id
+#    }
+#  }
+#  if(length(sf) > 0){
+#	  slot(kandata,'sf') = purrr::reduce(sf,'rbind')
+#	  rm(sf)
+#  }
+#
+#  #merge listw and create nb objects
+#  nb = list()
+#  nb_ids = c()
+#  for(n in 1:nsamples){
+#    if(!is.null(KanData(seurat.list[[n]],'nb'))){
+#      nb[[n]] = as(KanData(seurat.list[[n]],'nb'),'CsparseMatrix')
+#      nb_ids = c(nb_ids,paste0(ids[n],"_",rownames(nb[[n]])))
+#    }
+#  }
+#  if(length(nb) > 0){
+#    nb = Matrix::bdiag(nb)
+#    rownames(nb) = nb_ids
+#    colnames(nb) = nb_ids
+#    slot(kandata,'nb') = spdep::mat2listw(nb,row.names = nb_ids,style='B',zero.policy=T)
+#    rm(nb)
+#  }
+#
+#  img = list()
+#  imgnames = c()
+#  for(n in 1:nsamples){
+#    if(!is.null(KanData(seurat.list[[n]],'img'))){
+#      img[[n]] = KanData(seurat.list[[n]],'img')
+#      imgnames = c(imgnames,ids[n])
+#    }
+#  }
+#  if(length(img) > 0){
+#    img = terra::sprc(img)
+#    names(img) = imgnames
+#    slot(kandata,'img') = img
+#    rm(img)
+#  }
+#
+#  mask = list()
+#  masknames = c()
+#  for(n in 1:nsamples){
+#    if(!is.null(KanData(seurat.list[[n]],'mask'))){
+#      mask[[n]] = KanData(seurat.list[[n]],'mask')
+#      masknames = c(masknames,ids[n])
+#    }
+#  }
+#  if(length(mask) > 0){
+#    mask = terra::sprc(mask)
+#    names(mask) = masknames
+#    slot(kandata,'mask') = mask
+#    rm(mask)
+#  }
+#
+#  texture = list()
+#  for(n in 1:nsamples){
+#    if(!is.null(KanData(seurat.list[[n]],'texture'))){
+#      texture[[n]] = KanData(seurat.list[[n]],'texture')
+#      texture[[n]]$kan_id = paste0(rownames(ids[n],"_",texture[[n]]))
+#      rownames(texture[[n]]) = texture[[n]]$kan_id
+#    }
+#  }
+#  if(length(texture) > 0){
+#	  slot(kandata,'texture') = purrr::reduce(texture,rbind)
+#	  rm(texture)
+#  }
+#
+#  return(kandata)
+#}
+#
+#as.kandinsky = function(list){
+#
+#}
 
 
 #' @title Initialize Kandinsky data
@@ -522,6 +560,7 @@ as.kandinsky = function(list){
 #' will be automatically detected even if the corresponding parameters are set to `NULL`.
 #' @param seurat a Seurat object
 #' @param tech character string specifying the platform used to generate the sequencing data. Must be one of the following: `visium`, `visium_hd`, `cosmx`, `xenium`, `merscope`, `other`.
+#' @param sample_key character string specifying a variable stored in the Seurat object to use as sample/batch annotation. If not NULL, neighbour networks will be defined separately for each sample/batch. Default is NULL.
 #' @param img character string indicating the path of the H&E image to be used for Visium/VisiumHD. If set to `NULL`, no image is loaded and stored in the final Kandinsky data
 #' @param img_maxdim numeric value indicating the ideal maximum pixel dimension accepted for Visium H&E image. If image size is bigger than this value, a scale factor will be applied to lower image pixel resolution/size up to the defined maximum value
 #' @param res character string specifying which version of H&E Visium image will be loaded into the Kandinsky data. Must be one of the following: `low`, `high`, `full`, where `full` refers to the original H&E full-resolution tiff image
@@ -544,7 +583,7 @@ as.kandinsky = function(list){
 #' @param xcoord_other character string specifying variable name to be used as x coordinates when argument tech is set to "other"
 #' @param ycoord_other character string specifying variable name to be used as y coordinates when argument tech is set to "other"
 #' @export
-kandinsky_init = function(seurat=NULL,tech='visium',
+kandinsky_init = function(seurat=NULL,tech='visium',sample_key=NULL,
                           img=NULL,img_maxdim=2000,
                           res=c('low','high','full'),
                           binsize=16,
@@ -641,7 +680,16 @@ kandinsky_init = function(seurat=NULL,tech='visium',
   }else{
     nb.method = nb.method %||% 'K'
   }
-
+  if(!is.null(sample_key)){
+    message('Building separate neighbour networks for each "',sample_key,'" id')
+    missing = setdiff(sample_key, colnames(kandinsky$sf))
+    if(length(missing)>0){
+      kandinsky$sf=cbind(kandinsky$sf[colnames(seurat),], 
+            Seurat::FetchData(seurat, vars = missing, assay = DefaultAssay(seurat), 
+                              layer = 'counts', clean = F))
+    }
+    kandinsky$sf = split(kandinsky$sf,kandinsky$sf[[sample_key]])
+  }
   if(nb.method == 'K'){
     kandinsky$nb = knn_nb(kandinsky$sf,k = k)
     kandinsky$nb.type = paste0('K_',k)
@@ -655,10 +703,13 @@ kandinsky_init = function(seurat=NULL,tech='visium',
     kandinsky$nb = membrane_nb(kandinsky$sf,d.max=d.max)
     kandinsky$nb.type = paste0('M_',d.max)
   }else if(nb.method == 'Q'){
-    kandinsky$nb = queen_nb(kandinsky$sf,layers=1,snap=snap)
+    kandinsky$nb = queen_nb(kandinsky$sf,layers=layers,snap=snap)
     kandinsky$nb.type = 'Q'
   }else{
     stop('nb.method parameter must be either "Q", "C", "D", "K", or "M"')
+  }
+  if(!is.null(sample_key)){
+	  kandinsky$sf = purrr::reduce(kandinsky$sf,rbind)
   }
   message('Building Kandinsky slot "tx"...')
   if(is.null(seurat@tools$tx)){

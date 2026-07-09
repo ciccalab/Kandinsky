@@ -2,20 +2,23 @@
 % Please edit documentation in R/03_NB_based_cell_comparison.R
 \name{nbCluster}
 \alias{nbCluster}
-\title{Identify single cell/spot clusters on the basis of their neighbourhood compositin}
+\title{Identify single cell/spot clusters on the basis of their neighbourhood composition}
 \usage{
 nbCluster(seurat = NULL, n_clust = 3:12, seed = 347548)
 }
 \arguments{
-\item{seurat}{a Seurat object containing Kandinsky data (`KanData()`)}
+\item{seurat}{a Seurat object containing Kandinsky data (\code{KanData()})}
 
 \item{n_clust}{numeric vector indicating the possible niche numbers to be tested to find the optimal number}
 
 \item{seed}{numeric, random seed for reproducibility. Default is set to 347548}
 }
 \value{
-Seurat object with new `nbClust_` variable column stored in the Seurat meta.data
+Seurat object with new \code{nbClust_} variable column stored in the Seurat meta.data
 }
 \description{
 Use model based clustering on single-cell neighbour composition to define cellular clusters
+}
+\seealso{
+\code{\link[=cellcharter_clust]{cellcharter_clust()}}, \code{\link[=mesa_clust]{mesa_clust()}}, \code{\link[=spatialleiden_clust]{spatialleiden_clust()}}, \code{\link[=spatopic_clust]{spatopic_clust()}}, \code{\link[=kmeans_clust]{kmeans_clust()}}, \code{\link[=giotto_clust]{giotto_clust()}}, \code{\link[=hoodscanR_clust]{hoodscanR_clust()}} for alternative clustering methods
 }

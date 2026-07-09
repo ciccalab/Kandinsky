@@ -7,21 +7,21 @@
 scale_coords(seurat, xfact = NULL, yfact = NULL, fun = c("*", "+", "/", "-"))
 }
 \arguments{
-\item{seurat}{a Seurat object containing Kandinsky data (`KanData()`)}
+\item{seurat}{a Seurat object containing Kandinsky data (\code{KanData()})}
 
 \item{xfact}{numeric value, shifting or scaling factor to apply to x coordinates. Default value is 0 for shifting, and 1 for scaling transformations}
 
 \item{yfact}{numeric value, shifting or scaling factort o apply to y coordinates. Default value is 0 for shifting, and 1 for scaling transformations}
 
 \item{fun}{character indicating the operator to use for coordinate transformation. Must be one of the following:
-`"*"`: multiply x/y coordinates by xfact/yfact (scaling)
-`"+"`: add xfact/yfact to x/y coordinates (shifting)
-`"/"`: divide x/y coordinates by xfact/yfact (scaling)
-`"-"`: subtract xfact/yfact to x/y coordinates (shifting)}
+\code{"*"}: multiply x/y coordinates by xfact/yfact (scaling)
+\code{"+"}: add xfact/yfact to x/y coordinates (shifting)
+\code{"/"}: divide x/y coordinates by xfact/yfact (scaling)
+\code{"-"}: subtract xfact/yfact to x/y coordinates (shifting)}
 }
 \value{
-Seurat object with updated polygon coordinates in Kandinsky `sf` slot
+Seurat object with updated polygon coordinates in Kandinsky \code{sf} slot
 }
 \description{
-Apply a shift or a scaling factor to either one or both x and y polygon coordinates stored in Kandinsky `sf` slot
+Apply a shift or a scaling factor to either one or both x and y polygon coordinates stored in Kandinsky \code{sf} slot
 }

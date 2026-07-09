@@ -16,7 +16,7 @@ fireflyPlot(
 )
 }
 \arguments{
-\item{data}{a Seurat object containing Kandinsky data (`KanData()`)}
+\item{data}{a Seurat object containing Kandinsky data (\code{KanData()})}
 
 \item{label}{character string specifying the variable name to be used to defne cell annotation groups}
 
@@ -30,7 +30,7 @@ fireflyPlot(
 
 \item{fovs}{list of fov IDs to include in the analysis. If NULL, all fovs will be considered for the analysis}
 
-\item{ct1.colthresh}{quantile threshold to apply to the distance colorscheme for cells belonging to cell type A in the spatial plot. For instance, if `ct1.coltresh = 0.99`, any distance greater than the 99 percentile will not result in a lighter or darker cell color}
+\item{ct1.colthresh}{quantile threshold to apply to the distance colorscheme for cells belonging to cell type A in the spatial plot. For instance, if \code{ct1.coltresh = 0.99}, any distance greater than the 99 percentile will not result in a lighter or darker cell color}
 }
 \value{
 a list object containing the data frame with the distance measurement plus a spatial plot reporting cells A colored according to their distance from cells B

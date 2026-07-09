@@ -4,7 +4,7 @@
 \alias{knn_nb}
 \title{K-nearest neighbour neighbour identification}
 \usage{
-knn_nb(poly, k = 20)
+knn_nb(poly = NULL, k = 10)
 }
 \arguments{
 \item{poly}{a sf data frame with polygon geometry}

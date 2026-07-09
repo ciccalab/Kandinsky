@@ -7,7 +7,7 @@
 hotspot_overlap(seurat = NULL, feat.1 = NULL, feat.2 = NULL, ...)
 }
 \arguments{
-\item{seurat}{a Seurat object containing Kandinsky data (`KanData()`)}
+\item{seurat}{a Seurat object containing Kandinsky data (\code{KanData()})}
 
 \item{feat.1}{character string specifying the name of the first feature to consider}
 
@@ -17,12 +17,14 @@ hotspot_overlap(seurat = NULL, feat.1 = NULL, feat.2 = NULL, ...)
 }
 \value{
 updated Seurat object with a new annotation column reporting the type of overlap between hot/cold spot annotations:
-- 'Hot-Hot': a cell/spot is annotated as 'hot' for both the considered variables
-- 'Cold-Cold': a cell/spot is annotated as 'cold' for both the considered variables
-- 'Cold-Hot': a cell/spot is annotated as 'cold' for one variable and 'hot' for the other
-- 'Hot': a cell/spot is annotated as 'hot' only for one of the two variable (the other is annotated as non-significant 'NS')
-- 'Cold': a cell/spot is annotated as 'cold' only for one of the two variable (the other is annotated as non-significant 'NS')
-- 'NS': a cell/spot is not annotated as either 'hot' or 'cold' for any of the two variables
+\itemize{
+\item 'Hot-Hot': a cell/spot is annotated as 'hot' for both the considered variables
+\item 'Cold-Cold': a cell/spot is annotated as 'cold' for both the considered variables
+\item 'Cold-Hot': a cell/spot is annotated as 'cold' for one variable and 'hot' for the other
+\item 'Hot': a cell/spot is annotated as 'hot' only for one of the two variable (the other is annotated as non-significant 'NS')
+\item 'Cold': a cell/spot is annotated as 'cold' only for one of the two variable (the other is annotated as non-significant 'NS')
+\item 'NS': a cell/spot is not annotated as either 'hot' or 'cold' for any of the two variables
+}
 }
 \description{
 Given two numeric variables, this function will define hot and cold spots for each variable,
