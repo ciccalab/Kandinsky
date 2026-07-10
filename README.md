@@ -78,3 +78,12 @@ To start getting familiar with Kandinsky package, and to reproduce the results s
 - [cell/spot-neighbour based differential expression analysis and c/s-NB spatial clustering](https://ciccalab.github.io/Kandinsky/articles/modC.html)
 - [cell co-localisation/dispersion analysis](https://ciccalab.github.io/Kandinsky/articles/modD.html)
 - [hot/cold expression area detection](https://ciccalab.github.io/Kandinsky/articles/modE.html)
+
+## How to cite Kandinsky
+
+Andrei P, Grieco M, Acha-Sagredo A, Dhami P, Fung K, Rodriguez-Justo M, Cereda M, Ciccarelli F (2025). “Kandinsky: enabling neighbourhood analysis of spatial omics data for functional insights on cell ecosystems.” bioRxiv. doi:10.1101/2025.07.10.664141.
+
+## Other resources
+
+Code and output files generated as part of Kandinsky benchmarking described in the original study can be found at the following repository:\
+[https://github.com/PietroAndrei/Kandinsky_bench](https://github.com/PietroAndrei/Kandinsky_bench)
