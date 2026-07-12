@@ -82,7 +82,11 @@ library(ggplot2)
 Kandinsky ships a small simulated dataset, already stored as a `Seurat` object, that can be retrieved with `system.file()`. If Kandinsky needs to call any external Python tool (for instance, some of the optional benchmarking/clustering functions described at the end of this vignette), the path to a compatible Python environment can be set once at the top of the script:
 
 ```{r, eval = FALSE}
-pypath = '/path/to/your/python3.12'
+pypath = '/path/to/your/python'
+```
+
+```{r pypath, echo = FALSE}
+pypath = '/SAN/colcc/ITH2/Pietro/miniconda3/envs/kandinskybench/bin/python3.12'
 ```
 
 We then load the toy dataset:
@@ -271,7 +275,7 @@ table(data$nbClust.D_soiTRUE)
 KanPlot(data, feature = 'nbClust.D_soiTRUE',pt.size=2) + labs(fill = 'c-NB cluster')
 ```
 
-## Alternative clustering method: `kmeans_clust()`
+## Alternative clustering methods
 
 Kandinsky also implements simpler/alternative neighbourhood-based clustering strategies. `kmeans_clust()`, inspired by the [ISCHIA](https://github.com/ati-lz/ISCHIA) package, applies k-means on the (row-normalised) neighbourhood composition matrix instead of model-based clustering, again testing a range of candidate cluster numbers and selecting the one minimizing the within-cluster sum of squares:
 
@@ -294,9 +298,14 @@ mclust::adjustedRandIndex(data$nbClust.D_soiTRUE, data$kmeans_clusters)
 
 Other alternative neighbourhood-clustering wrappers are available for users who want to benchmark Kandinsky against external tools, including `spatopic_clust()` (SpaTopic), `hoodscanR_clust()` (hoodscanR) and `giotto_clust()` (Giotto) - all pure-R/Bioconductor based - as well as `cellcharter_clust()`, `spatialleiden_clust()` and `mesa_clust()`, which call Python-based tools (CellCharter, SpatialLeiden, MESA respectively) through `reticulate`. The latter require a Python environment with the relevant dependencies installed, pointed to via their `python_path` argument (this is what the `pypath` variable defined at the top of this vignette is for):
 
-```{r cellcharter, eval = FALSE}
+```{r cellcharter, eval=TRUE}
 # Requires a python environment with CellCharter/squidpy/scanpy/scvi installed (see pypath above)
-data = cellcharter_clust(data,n_clust = 7,mode = 'rna', python_path = pypath)
+data = cellcharter_clust(data,n_clust = 3:9,mode = 'rna', python_path = pypath)
+```
+
+```{r kanplot-cellcharter, fig.width=6, fig.height=5}
+data$cellcharter_clusters = as.character(data$cellcharter_clusters)
+KanPlot(data, feature = 'cellcharter_clusters',pt.size=2) + labs(fill = 'CellCharter cluster')
 ```
 
 <br />
