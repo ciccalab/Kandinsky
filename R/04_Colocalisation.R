@@ -318,7 +318,7 @@ squidpy_coloc = function(data=NULL,
 	res = reshape2::melt(zmat_squidpy)
 	colnames(res)=c('central_ct','nb_ct','coef')
 	g=ggplot(res, aes(y = .data[["central_ct"]], x = .data[["nb_ct"]],fill = .data[["coef"]])) +
-	theme_minimal() + geom_point(shape=21,color = "black") +
+	theme_minimal() + geom_tile(color = "black") +
 	scale_fill_gradient2(low = "blue", mid = "white", high = "red",
 			     midpoint = 0,
 			     limits = c(quantile(res$coef,max.cap) * -1,
@@ -383,7 +383,7 @@ cellcharter_coloc = function(data=NULL,
 	res = reshape2::melt(as.matrix(zmat_cellcharter))
 	colnames(res)=c('central_ct','nb_ct','coef')
 	g=ggplot(res, aes(y = .data[["central_ct"]], x = .data[["nb_ct"]],fill = .data[["coef"]])) +
-	theme_minimal() + geom_point(shape=21,color = "black") +
+	theme_minimal() + geom_tile(color = "black") +
 	scale_fill_gradient2(low = "blue", mid = "white", high = "red",
 			     midpoint = 0,
 			     limits = c(quantile(res$coef,max.cap) * -1,
@@ -456,7 +456,7 @@ hoodscanR_coloc = function(data=NULL,k=100,label=NULL,sample_key=NULL,max.cap=1,
       res = reshape2::melt(as.matrix(zmat_hoodscanr))
       colnames(res)=c('central_ct','nb_ct','coef')
       g=ggplot(res, aes(y = .data[["central_ct"]], x = .data[["nb_ct"]],fill = .data[["coef"]])) +
-      theme_minimal() + geom_point(shape=21,color = "black") +
+      theme_minimal() + geom_tile(color = "black") +
       scale_fill_gradient2(low = "blue", mid = "white", high = "red",
 			   midpoint = 0,
 			   limits = c(quantile(res$coef,max.cap) * -1,
@@ -553,7 +553,7 @@ data$cell_ID = colnames(data)
   res$coef = res$PI_value
   res=res[,c('central_ct','nb_ct','coef','p_higher_orig','p_lower_orig')]
   g=ggplot(res, aes(y = .data[["central_ct"]], x = .data[["nb_ct"]],fill = .data[["coef"]])) +
-    theme_minimal() + geom_point(shape=21,color = "black") +
+    theme_minimal() + geom_tile(color = "black") +
     scale_fill_gradient2(low = "blue", mid = "white", high = "red",
                          midpoint = 0,
                          limits = c(quantile(res$coef,max.cap) * -1,
