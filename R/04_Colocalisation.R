@@ -437,7 +437,8 @@ hoodscanR_coloc = function(data=NULL,k=100,label=NULL,sample_key=NULL,max.cap=1,
 						   altExps=list(),sample_id = 'my_spe',
 						   spatialCoords=sf::st_coordinates(sf::st_centroid(sf::st_geometry(KanData(data,'sf'))))
 						   )
-      message('Running hoodscanR...')
+	rownames(SpatialExperiment::spatialCoords(spe)) <- rownames(KanData(data,'sf'))
+	message('Running hoodscanR...')
       if(!is.null(sample_key)){
 	      nns = list()
 	      for(s in samples){

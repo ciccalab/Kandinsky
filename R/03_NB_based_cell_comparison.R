@@ -633,6 +633,7 @@ hoodscanR_clust = function(data=NULL,k=100,label=NULL,n_clust=5,sample_key=NULL)
                                              altExps=list(),sample_id = 'my_spe',
                                              spatialCoords=sf::st_coordinates(sf::st_centroid(sf::st_geometry(KanData(data,'sf'))))
   )
+  rownames(SpatialExperiment::spatialCoords(spe)) <- rownames(KanData(data,'sf'))
   message('Running hoodscanR...')
   if(!is.null(sample_key)){
     nns = list()
