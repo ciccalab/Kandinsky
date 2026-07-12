@@ -377,7 +377,7 @@ cellcharter_clust = function(data=NULL,
     )
     autok$fit(adata, use_rep='X_cellcharter')
     data$cellcharter_clusters = autok$predict(adata, use_rep='X_cellcharter')
-    message('Optimal number of clusters: ',unique(as.character(data$cellcharter_clusters)))
+    message('Optimal number of clusters: ',length(unique(as.character(data$cellcharter_clusters))))
   }else{
     clust = cc$tl$Cluster(
       n_clusters=as.integer(n_clust),
