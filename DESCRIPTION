@@ -1,7 +1,7 @@
 Package: Kandinsky
 Type: Package
 Title: Neighbourhood analysis of spatial omics data for functional insights on cell ecosystems
-Version: 0.1.0
+Version: 1.1.0
 Authors@R: 
         c(person("Pietro", "Andrei", email = "pietro.andrei96@gmail.com",role = c("aut", "cre")),
         person("Mariachiara", "Grieco", email = "mariachiara@grieco.unimi.it", role = c("aut")),
