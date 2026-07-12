@@ -608,8 +608,7 @@ cortex (DLPFC), with spots annotated into 6 cortical layers
 (<code>WM</code>).</p>
 <p>For more advanced, technology-specific tutorials (CosMx, Xenium, IMC,
 Visium) that reproduce the analyses of the Kandinsky paper, see the
-<code>modC</code>, <code>modD</code> and <code>modE</code>
-vignettes.</p>
+other vignettes.</p>
 <p><br /></p>
 </div>
 <div id="setup" class="section level1">
@@ -681,8 +680,8 @@ Kandinsky to the columns containing spot centroid coordinates using
 <code>xcoord_other</code> and <code>ycoord_other</code>.</p>
 <p>We define spot neighbourhoods (s-NBs) using the <strong>Delaunay
 neighbour</strong> method (<code>nb.method = &#39;D&#39;</code>), considering
-only the spehere of influence (SOI) subgraph (<code>soi = TRUE</code>)
-to limit spurious neighbour links:</p>
+only the sphere of influence (SOI) subgraph (<code>soi = TRUE</code>) to
+limit spurious neighbour links:</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>data <span class="ot">=</span> <span class="fu">kandinsky_init</span>(data, <span class="at">tech =</span> <span class="st">&#39;other&#39;</span>, <span class="at">nb.method =</span> <span class="st">&#39;D&#39;</span>, <span class="at">soi =</span> T,</span>
 <span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>                       <span class="at">xcoord_other =</span> <span class="st">&#39;x&#39;</span>, <span class="at">ycoord_other =</span> <span class="st">&#39;y&#39;</span>)</span>
 <span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="co">#&gt; Building Kandinsky slot &quot;sf&quot;...</span></span>
