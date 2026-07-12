@@ -335,10 +335,10 @@ As expected for a layered tissue, each layer strongly co-localises with itself (
 - `giotto_coloc()`: cell-proximity enrichment test from the `Giotto` package.
 - `squidpy_coloc()` / `cellcharter_coloc()`: neighbourhood enrichment tests from the Python packages `squidpy`/`CellCharter`, called through `reticulate` (again using `python_path = pypath`).
 
-```{r squidpy-coloc, eval = FALSE}
-# Requires a python environment with squidpy installed, plus the anndataR package (see pypath above)
-coloc_sq = squidpy_coloc(data, label = 'label', python_path = pypath, return.mat = TRUE)
-coloc_sq$plot
+```{r hoodscanR-coloc, eval = FALSE}
+# Requires hoodscanR to be installed
+coloc_hs = hoodscanR_coloc(data, label = 'label', k=50, return.mat = TRUE)
+coloc_hs$plot
 ```
 
 <br />
