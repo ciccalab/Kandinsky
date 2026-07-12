@@ -475,7 +475,7 @@ nbSizePlot = function(seurat){
   labels = unique(c(min(tot_nb$size),median(tot_nb$size),max(tot_nb$size)))
   ggplot(tot_nb,aes(y=.data[["size"]]))+theme_classic()+geom_density()+scale_y_reverse(breaks=(labels),labels=(labels))+
     annotate('segment',x=0,xend= max(density(tot_nb$size)$y), y= median(tot_nb$size),yend=median(tot_nb$size),linetype='dashed',color='red')+theme(axis.text.x=element_blank(),axis.line.x=element_blank(),axis.ticks.x = element_blank())+
-    guides(y=guide_axis(cap = "both"))+labs(y='c-NB size',x='')
+    guides(y=guide_axis(cap = "both"))+labs(y='c/s-NB size',x='')
 }
 
 
