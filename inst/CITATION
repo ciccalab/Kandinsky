@@ -7,13 +7,14 @@ bibentry(
 			person("Pietro", "Andrei"),
 			person("Mariachiara", "Grieco"),
 			person("Amelia", "Acha-Sagredo"),
+			person("Tommaso", "Becchi"),
 			person("Pawan", "Dhami"),
 			person("Kathy", "Fung"),
 			person("Manuel", "Rodriguez-Justo"),
 			person("Matteo", "Cereda"),
 			person("Francesca D.", "Ciccarelli")
 			),
-		year = "2025",
-		journal = "bioRxiv",
-		doi = "10.1101/2025.07.10.664141"
+		year = "2026",
+		journal = "EXO - Beyond the Cell",
+		doi = "10.70401/EXO.2025.0017"
 		)

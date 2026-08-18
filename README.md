@@ -75,13 +75,14 @@ devtools::install()
 
 To start getting familiar with Kandinsky package, and to reproduce the results shown in the original study, user can follow the tutorials available in the `vignettes/` folder or on Kandinsky website:
 
+- [Getting started with Kandinsky](https://ciccalab.github.io/Kandinsky/articles/kandinsky_intro_vignette.html)
 - [cell/spot-neighbour based differential expression analysis and c/s-NB spatial clustering](https://ciccalab.github.io/Kandinsky/articles/modC.html)
 - [cell co-localisation/dispersion analysis](https://ciccalab.github.io/Kandinsky/articles/modD.html)
 - [hot/cold expression area detection](https://ciccalab.github.io/Kandinsky/articles/modE.html)
 
 ## How to cite Kandinsky
 
-Andrei P, Grieco M, Acha-Sagredo A, Dhami P, Fung K, Rodriguez-Justo M, Cereda M, Ciccarelli F (2025). “Kandinsky: enabling neighbourhood analysis of spatial omics data for functional insights on cell ecosystems.” bioRxiv. doi:10.1101/2025.07.10.664141.
+Andrei P, Grieco M, Acha-Sagredo A, Becchi T,Dhami P, Fung K, Rodriguez-Justo M, Cereda M, Ciccarelli F (2026). “Kandinsky: enabling neighbourhood analysis of spatial omics data for functional insights on cell ecosystems.” EXO - Beyond the Cell. doi:10.70401/EXO.2025.0017.
 
 ## Other resources
 
