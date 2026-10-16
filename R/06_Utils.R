@@ -1132,6 +1132,7 @@ visiumize = function(data=NULL,style=c('spots','bins'),label=NULL,bin_res=NULL,
       warning('Setting default bin resolution to 16')
     }
     bin_res=bin_res %||% 16
+    bin_res=bin_res/2 #bin_res will be used as half of the squared bin side
   }
   style=style %||% 'spots'
   #Create Visium/VisiumHD-like grid of spots/bins
