@@ -145,17 +145,17 @@ multi_jc = function(fx, listw, wc.type = c('mat','listw')){
 }
 
 
-#' @title JC colocalization test and plot using Seurat/Kandinsky object
+#' @title JC colocalisation test and plot using Seurat/Kandinsky object
 #' @name jc_coloc
 #' @description
-#' Call multi_jc() function to perform colocalization test, and plot results in the form of a heatmap
+#' Call multi_jc() function to perform colocalisation test, and plot results in the form of a heatmap
 #'
 #' @param data a Seurat object containing Kandinsky data slot
 #' @param label name of the metadata column variable containing cell type annotation to be used for join count test
 #' @param max.cap numeric, quantile cap to apply to colocalisation coefficients for colour scale creation. Default is 0.9, will set the coefficient value limit to the 90% quantile of all coefficients
-#' @param return.mat boolean, whether returning only colocalization plot (FALSE) or also a dataframe containing colocalization test results
+#' @param return.mat boolean, whether returning only colocalisation plot (FALSE) or also a dataframe containing colocalisation test results
 #' @param wc.type input type to use to extract summary weight constants used to calculate join count statistics. Must be one of the following: "listw", "mat"
-#' @return a colocalization plot (when return.mat is FALSE) or a list containing colocalization plot and results in a tabular format
+#' @return a colocalisation plot (when return.mat is FALSE) or a list containing colocalisation plot and results in a tabular format
 #' @seealso [squidpy_coloc()], [cellcharter_coloc()], [hoodscanR_coloc()], [giotto_coloc()] for alternative colocalisation methods
 #' @export
 jc_coloc = function(data=NULL,label=NULL,max.cap=0.9,return.mat=F,
@@ -286,8 +286,8 @@ spweights_mat = function(listw){
 #' @param nperms numeric, number of random permutations to perform for colocalisation test
 #' @param python_path path of python environment with MESA and its dependencies installed
 #' @param max.cap numeric, quantile cap to apply to colocalisation coefficients for colour scale creation. Default is 0.9, will set the coefficient value limit to the 90% quantile of all coefficients
-#' @param return.mat boolean, whether returning only colocalization plot (FALSE) or also a dataframe containing colocalization test results
-#' @return a colocalization plot (when return.mat is FALSE) or a list containing colocalization plot and results in a tabular format
+#' @param return.mat boolean, whether returning only colocalisation plot (FALSE) or also a dataframe containing colocalisation test results
+#' @return a colocalisation plot (when return.mat is FALSE) or a list containing colocalisation plot and results in a tabular format
 #' @export
 squidpy_coloc = function(data=NULL,
 			 label = NULL,
@@ -351,8 +351,8 @@ squidpy_coloc = function(data=NULL,
 #' @param log_fold_change boolean, whether to return default CellCharter colocalisation scores (observed - expected) or their log-fold change version (log2(observed/expected))
 #' @param python_path path of python environment with MESA and its dependencies installed
 #' @param max.cap numeric, quantile cap to apply to colocalisation coefficients for colour scale creation. Default is 0.9, will set the coefficient value limit to the 90% quantile of all coefficients
-#' @param return.mat boolean, whether returning only colocalization plot (FALSE) or also a dataframe containing colocalization test results
-#' @return a colocalization plot (when return.mat is FALSE) or a list containing colocalization plot and results in a tabular format
+#' @param return.mat boolean, whether returning only colocalisation plot (FALSE) or also a dataframe containing colocalisation test results
+#' @return a colocalisation plot (when return.mat is FALSE) or a list containing colocalisation plot and results in a tabular format
 #' @export
 cellcharter_coloc = function(data=NULL,
 			     label = NULL,
@@ -417,8 +417,8 @@ cellcharter_coloc = function(data=NULL,
 #' @param label character string specifying the variable name to be used to defne cell annotation groups
 #' @param sample_key character string specifying a variable stored in the Seurat object to use as sample/batch annotation. If not NULL, neighbour networks will be defined separately for each sample/batch. Default is NULL
 #' @param max.cap numeric, quantile cap to apply to colocalisation coefficients for colour scale creation. Default is 1, will set the coefficient value limit to the highest value of all coefficients
-#' @param return.mat boolean, whether returning only colocalization plot (FALSE) or also a dataframe containing colocalization test results
-#' @return a colocalization plot (when return.mat is FALSE) or a list containing colocalization plot and results in a tabular format
+#' @param return.mat boolean, whether returning only colocalisation plot (FALSE) or also a dataframe containing colocalisation test results
+#' @return a colocalisation plot (when return.mat is FALSE) or a list containing colocalisation plot and results in a tabular format
 #' @export
 hoodscanR_coloc = function(data=NULL,k=100,label=NULL,sample_key=NULL,max.cap=1,return.mat=T){
 	if((!requireNamespace("hoodscanR",quietly = T))){
@@ -489,8 +489,8 @@ hoodscanR_coloc = function(data=NULL,k=100,label=NULL,sample_key=NULL,max.cap=1,
 #' @param nperms numeric, number of random permutations to perform for colocalisation test
 #' @param python_path path of python environment with MESA and its dependencies installed
 #' @param max.cap numeric, quantile cap to apply to colocalisation coefficients for colour scale creation. Default is 0.9, will set the coefficient value limit to the 90% quantile of all coefficients
-#' @param return.mat boolean, whether returning only colocalization plot (FALSE) or also a dataframe containing colocalization test results
-#' @return a colocalization plot (when return.mat is FALSE) or a list containing colocalization plot and results in a tabular format
+#' @param return.mat boolean, whether returning only colocalisation plot (FALSE) or also a dataframe containing colocalisation test results
+#' @return a colocalisation plot (when return.mat is FALSE) or a list containing colocalisation plot and results in a tabular format
 #' @export
 giotto_coloc = function(data=NULL,label=NULL,nperms=1000,python_path=NULL,max.cap=0.9,return.mat=T){
 	if((!requireNamespace("Giotto", quietly = TRUE))){
@@ -572,4 +572,127 @@ data$cell_ID = colnames(data)
   }
 }
 
-
+#' @title COZI colocalisation test
+#' @name cozi_coloc
+#' @description
+#' Reimplementation of the conditional z-score (COZI) method described in Schiller et al (Nat Comm, 2026)
+#' 
+#' @details
+#' COZI method is also available through the official \href{https://github.com/SchapiroLabor/coziR}{coziR} package
+#' 
+#' @param data a Seurat object containing Kandinsky data slot
+#' @param label name of the metadata column variable containing cell type annotation to be used for join count test
+#' @param nperms numeric, number of random permutations to perform for colocalisation test
+#' @param max.cap numeric, quantile cap to apply to colocalisation coefficients for colour scale creation. Default is 0.9, will set the coefficient value limit to the 90% quantile of all coefficients
+#' @param ccr_thresh numeric, minimal conditional cell ratio (CCR) required for a colocalisation coefficient to be reported in the final plot
+#' @param return.mat boolean, whether returning only colocalisation plot (FALSE) or also a dataframe containing colocalisation test results
+#' @param return.perms boolean, whether returning the list of permutation-based colocalisation coefficients together with colocalisation test results. Only considered when return.mat is TRUE
+#' @return a colocalisation plot (when return.mat is FALSE) or a list containing colocalisation plot and results in a tabular format
+#' @export
+cozi_coloc = function(data=NULL,label=NULL,seed=347548,nperms=100,max.cap=0.9,ccr_thresh=0.05,normalize.z=F,return.mat=T,return.perms=F){
+	if(is.list(data)){
+		levs = unique(unlist(lapply(data,function(x){
+					    levels(as.factor(as.character(x@meta.data[[label]])))
+										  })))
+		labels = lapply(seq_len(length(data)),function(x){
+				factor(as.character(data[[x]]@meta.data[[label]]),levels=levs)
+	  })  
+		labels = Reduce('c',labels)
+		Z=Matrix::sparse.model.matrix(~labels-1)
+		colnames(Z) = gsub('labels','',colnames(Z))
+		all_nb = lapply(seq_len(length(data)),function(x){
+				mat= as(KanData(data[[x]],'nb'),'CsparseMatrix') 
+				rownames(mat) = paste0(rownames(mat),'_',x)
+				colnames(mat) = rownames(mat)
+				mat 
+	  })  
+		all_names = Reduce('c',lapply(all_nb,rownames))
+		all_nb = purrr::reduce(all_nb,Matrix::bdiag)
+		rownames(all_nb) = all_names
+		colnames(all_nb) = all_names
+		N = t(Z) %*% all_nb %*% Z
+		M = all_nb %*% Z
+		M =M>0
+		M = t(Z) %*% M
+		#calculate conditional cell ratio (CCR)
+		CCR = as.data.frame(sweep(M,MARGIN = 1,STATS = as.numeric(table(labels)),FUN='/'))
+		CCR$central_ct = rownames(CCR)
+		CCR = reshape2::melt(CCR,id.vars='central_ct')
+		colnames(CCR) = c('central_ct','nb_ct','CCR')
+		O = (N)/(M)
+	}else{
+		labels = as.factor(as.character(data@meta.data[[label]]))
+		levs = levels(labels)
+		Z=Matrix::sparse.model.matrix(~labels-1)
+		colnames(Z) = gsub('labels','',colnames(Z))
+		N = t(Z) %*% as(KanData(data,'nb'),'CsparseMatrix') %*% Z
+		M = as(KanData(data,'nb'),'CsparseMatrix') %*% Z
+		M =M>0
+		M = t(Z) %*% M
+		#calculate conditional cell ratio (CCR)
+		CCR = as.data.frame(sweep(M,MARGIN = 1,STATS = as.numeric(table(labels)),FUN='/'))
+		CCR$central_ct = rownames(CCR)
+		CCR = reshape2::melt(CCR,id.vars='central_ct')
+		colnames(CCR) = c('central_ct','nb_ct','CCR')
+		#calculate final conditional z-score
+		O = (N)/(M)
+	}
+	set.seed(seed)
+	perms = lapply(seq_len(nperms),function(x){
+		       labels = factor(sample(as.character(labels),size=length(labels),replace=F),levels=levs)
+		       Z=Matrix::sparse.model.matrix(~labels-1)
+		       colnames(Z) = gsub('labels','',colnames(Z))
+		       if(!is.list(data)){
+			       N = t(Z) %*% as(KanData(data,'nb'),'CsparseMatrix') %*% Z
+			       M = as(KanData(data,'nb'),'CsparseMatrix') %*% Z
+		       }else{
+			       N = t(Z) %*% all_nb %*% Z
+			       M = all_nb %*% Z
+		       }
+		       M = M>0
+		       M = t(Z) %*% M
+		       O = (N)/(M)
+		       as.matrix(O)
+	  }
+	)
+	means = apply(simplify2array(perms),c(1,2),mean)
+	sds = apply(simplify2array(perms),c(1,2),sd)
+	C = as.data.frame((O-means)/sds)
+        C$central_ct = rownames(C)
+        C = reshape2::melt(C,id.vars='central_ct')
+	colnames(C)=c('central_ct','nb_ct','zscore')
+	if(normalize.z){
+		C$zscore = C$zscore/sqrt(length(labels))
+	}
+	#Add conditional cell ratio (CCR)
+	C = merge(C,CCR,by=c('central_ct','nb_ct'))
+	perm_res = NULL
+	
+	if(return.mat){
+	if(return.perms){
+		perm_res = simplify2array(perms)
+	}
+	}
+	#pal = grDevices::colorRampPalette(c("royalblue3",'ivory', "firebrick2"))(9)
+	g = ggplot(C %>% dplyr::mutate(CCR=ifelse(CCR>ccr_thresh,CCR,NA)),
+		   aes(y = central_ct, x = nb_ct,fill = zscore, size = CCR))+
+		theme_minimal() + geom_point(shape = 21, color = "black") +
+		scale_size_continuous(breaks = seq(0.2,1,0.2),
+				      labels = seq(0.2,1,0.2),
+				      limits=c(0,1),range = c(-1,9))+
+		scale_fill_gradient2(low = "blue",
+				     mid = "white",
+				     high = "red",
+				     midpoint = 0,
+				     limits = c(quantile(C$zscore,max.cap,na.rm=T) * -1,
+						quantile(C$zscore, max.cap,na.rm=T)),
+				     oob = scales::squish)+
+		theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+		theme(panel.grid.major.x = element_blank(), axis.text = element_text(color = "black")) +
+		labs(x = "Neighbours", y = "Central cell type", fill = "z-score")
+	if(return.mat==F){
+		g
+	}else{
+		list(coloc_mat=C,plot=g,perm_res=perm_res)
+	}
+}
