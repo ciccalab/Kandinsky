@@ -1206,7 +1206,9 @@ visiumize = function(data=NULL,style=c('spots','bins'),label=NULL,bin_res=NULL,
     KanData(ncounts, n) = kandinsky[[n]]
   }
   if(!is.null(label)){
-    ncounts@meta.data[,colnames(ct_mat)] = ct_mat[colnames(ncounts),]
+	  #Be aware that a spot/bin might still contain transcripts even if no cells are detected
+	  ncounts@meta.data[,colnames(ct_mat)] = 0
+	  ncounts@meta.data[intersect(colnames(ncounts),rownames(ct_mat)), colnames(ct_mat)] = ct_mat[intersect(colnames(ncounts),rownames(ct_mat)),]
   }
   message('Spatial dataset converted to ',ifelse(style=='spots','Visium format!','Visium-HD format!'))
   return(ncounts)
