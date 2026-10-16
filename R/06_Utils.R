@@ -1153,14 +1153,18 @@ visiumize = function(data=NULL,style=c('spots','bins'),label=NULL,bin_res=NULL,
   #idx = as.data.frame(sf::st_intersects(grid,polys))
   idx = sf::st_within(polys, grid)
   if(!is.null(label)){
-    point_class = data@meta.data[,label]
-    poly_id <- sapply(idx, function(x) {
-      if (length(x) == 0) NA_integer_ else x[1]
-    })
-    ct_mat <- as.matrix(table(
-      polygon = poly_id,
-      class = point_class
-    ))
+	  point_class = data@meta.data[,label,drop=F]
+	  point_class$row.id = seq_len(nrow(point_class))
+	  poly_id = as.data.frame(idx)
+	  ct_mat = merge(poly_id,point_class,by='row.id')
+	  ct_mat=as.matrix(table(ct_mat$col.id,ct_mat[[label]]))
+  #poly_id <- sapply(idx, function(x) {
+    #  if (length(x) == 0) NA_integer_ else x[1]
+    #})
+    #ct_mat <- as.matrix(table(
+     # polygon = poly_id,
+     # class = point_class
+    #))
   }
   nmat=Matrix::sparseMatrix(i = as.data.frame(idx)$col.id, j = as.data.frame(idx)$row.id, x = 1,dims=c(max_n,nrow(polys)))
   #Matrix multiplication between gene expression counts and neigbour adjacency matrix
@@ -1207,12 +1211,8 @@ visiumize = function(data=NULL,style=c('spots','bins'),label=NULL,bin_res=NULL,
     KanData(ncounts, n) = kandinsky[[n]]
   }
   if(!is.null(label)){
-	  #Be aware that a spot/bin might still contain transcripts even if no cells are detected
-	  ncounts@meta.data[,colnames(ct_mat)] = 0
-	  ncounts@meta.data[intersect(colnames(ncounts),rownames(ct_mat)), colnames(ct_mat)] = ct_mat[intersect(colnames(ncounts),rownames(ct_mat)),]
+	  ncounts@meta.data[, colnames(ct_mat)] = ct_mat[colnames(ncounts),]
   }
   message('Spatial dataset converted to ',ifelse(style=='spots','Visium format!','Visium-HD format!'))
   return(ncounts)
 }
-
-
