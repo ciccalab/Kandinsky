@@ -693,6 +693,6 @@ cozi_coloc = function(data=NULL,label=NULL,seed=347548,nperms=100,max.cap=0.9,cc
 	if(return.mat==F){
 		g
 	}else{
-		list(coloc_mat=C,plot=g,perm_res=perm_res)
+		return(list(coloc_mat=C,plot=g,perm_res=perm_res))
 	}
 }

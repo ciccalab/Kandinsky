@@ -27,10 +27,10 @@ squidpy_coloc(
 
 \item{max.cap}{numeric, quantile cap to apply to colocalisation coefficients for colour scale creation. Default is 0.9, will set the coefficient value limit to the 90\% quantile of all coefficients}
 
-\item{return.mat}{boolean, whether returning only colocalization plot (FALSE) or also a dataframe containing colocalization test results}
+\item{return.mat}{boolean, whether returning only colocalisation plot (FALSE) or also a dataframe containing colocalisation test results}
 }
 \value{
-a colocalization plot (when return.mat is FALSE) or a list containing colocalization plot and results in a tabular format
+a colocalisation plot (when return.mat is FALSE) or a list containing colocalisation plot and results in a tabular format
 }
 \description{
 Squidpy is called thrugh reticulate and interacts with Seurat/Kandinsky object after anndata conversion with anndataR

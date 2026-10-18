@@ -2,7 +2,7 @@
 % Please edit documentation in R/04_Colocalisation.R
 \name{jc_coloc}
 \alias{jc_coloc}
-\title{JC colocalization test and plot using Seurat/Kandinsky object}
+\title{JC colocalisation test and plot using Seurat/Kandinsky object}
 \usage{
 jc_coloc(
   data = NULL,
@@ -19,15 +19,15 @@ jc_coloc(
 
 \item{max.cap}{numeric, quantile cap to apply to colocalisation coefficients for colour scale creation. Default is 0.9, will set the coefficient value limit to the 90\% quantile of all coefficients}
 
-\item{return.mat}{boolean, whether returning only colocalization plot (FALSE) or also a dataframe containing colocalization test results}
+\item{return.mat}{boolean, whether returning only colocalisation plot (FALSE) or also a dataframe containing colocalisation test results}
 
 \item{wc.type}{input type to use to extract summary weight constants used to calculate join count statistics. Must be one of the following: "listw", "mat"}
 }
 \value{
-a colocalization plot (when return.mat is FALSE) or a list containing colocalization plot and results in a tabular format
+a colocalisation plot (when return.mat is FALSE) or a list containing colocalisation plot and results in a tabular format
 }
 \description{
-Call multi_jc() function to perform colocalization test, and plot results in the form of a heatmap
+Call multi_jc() function to perform colocalisation test, and plot results in the form of a heatmap
 }
 \seealso{
 \code{\link[=squidpy_coloc]{squidpy_coloc()}}, \code{\link[=cellcharter_coloc]{cellcharter_coloc()}}, \code{\link[=hoodscanR_coloc]{hoodscanR_coloc()}}, \code{\link[=giotto_coloc]{giotto_coloc()}} for alternative colocalisation methods
